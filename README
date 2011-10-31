@@ -1,0 +1,8 @@
+This is the git-feature project
+Copyright (c) Adrien LELONG
+
+This is a set of script managing git branch according to a workflow
+based on an additional abstraction level (the features).
+
+A feature is made of severall branches and the branch management is
+heavily based on the git rebase command.

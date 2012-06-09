@@ -58,6 +58,15 @@ initialize()
     fi
 
     git config workflow.feature $VER
+
+    #Set alias
+    git config alias.featpush "feature -p"
+    git config alias.featmove "feature -m"
+    git config alias.featreview "feature -r"
+    git config alias.featfinalize "feature -f"
+    git config alias.featupdate "feature -u"
+    git config alias.featview "feature -v"
+    git config alias.featviewall "feature -a view all"
 }
 
 usage()

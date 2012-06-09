@@ -472,7 +472,7 @@ elif [ "$DO" == 'f' ]; then
         exit 6
     fi
 
-    STARTPOINT=$(start_point $FEATUREBRANCH)
+    STARTPOINT=$(start_point $FEATUREBRANCH) || exit 1
 
     git branch -t $FEATUREFINAL $STARTPOINT
     git branch -f $FEATUREFINAL $FEATDRAFT
@@ -507,7 +507,7 @@ elif [ "$DO" == 'm' ]; then
         exit 6
     fi
 
-    STARTPOINT=$(start_point "$FEATUREDRAFT")
+    STARTPOINT=$(start_point "$FEATUREDRAFT") || exit 1
     echo '>> '$STARTPOINT
 
     #If there is start marker or if new base does not coincide with DEVREF,
@@ -542,7 +542,7 @@ elif [ "$DO" == 'r' ]; then
         exit 6
     fi
 
-    STARTPOINT=$(start_point "$FEATUREDRAFT")
+    STARTPOINT=$(start_point "$FEATUREDRAFT") || exit 1
     git checkout $FEATUREBRANCH
     git rebase -i $STARTPOINT
     exit
@@ -573,7 +573,7 @@ elif [ "$DO" == 'u' ]; then
     fi
 
 
-    STARTPOINT=$(start_point "$FEATUREDRAFT")
+    STARTPOINT=$(start_point "$FEATUREDRAFT") || exit 1
     FEATUREBASE=$(get_feat_ref)
     #TODO Check for other refs between start point and branch end.
     if [ "$(git rev-parse $FEATUREDRAFT)" == "$DEVREFHASH" ]; then

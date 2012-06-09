@@ -85,6 +85,7 @@ OPTIONS:
    -t      Dummy option for test purpose.
    -p      Push the given feature
    -P      Push all local features ( TODO )
+   -r      Review commits of the branch ( git rebase -i )
    -u      Update the specified feature using rebase (Same as -a update )
    -h      Display this help.
 EOF
@@ -96,7 +97,7 @@ EOF
 
 DO='n' # Default action is new feature
 
-while getopts "fm:tb:a:hucvp" OPTION; do
+while getopts "rfm:tb:a:hucvp" OPTION; do
     case $OPTION in
         a)
             case $OPTARG in
@@ -138,6 +139,9 @@ while getopts "fm:tb:a:hucvp" OPTION; do
         m)
             MOVETO=$OPTARG
             DO='m'
+            ;;
+        r)
+            DO='r'
             ;;
         #s)        #> Specify the feature already exists and you want to share it (take no arg)
         #    DO='e'
@@ -492,6 +496,34 @@ elif [ "$DO" == 'm' ]; then
 
     STARTPOINT=$(start_point "$FEATUREDRAFT")
     git rebase --onto $MOVETO $STARTPOINT $FEATUREBRANCH
+    exit
+
+elif [ "$DO" == 'r' ]; then
+    if [ -n "$EXISTFINAL" ]; then
+        if ! git rev-parse $FEATUREFINAL &> /dev/null; then
+            echo "$FEATURE is already being finalized by you or someone else." ' *'/$FEATUREFINAL branches are detected.
+            echo -e "$EXISTFINAL"
+            echo "You should not move a feature being finalizd"
+            exit 5
+        fi
+        FEATUREBRANCH=$FEATUREFINAL
+    elif ! git rev-parse $FEATUREDRAFT &> /dev/null; then
+        echo "No local branch $FEATUREDRAFT to move"
+        exit 10
+    else
+        FEATUREBRANCH=$FEATUREDRAFT
+    fi
+
+    #Check if repo is clean
+    if ! git diff --quiet HEAD; then
+        echo "The repository needs to be clean for this operation."
+        echo "Please clean uncommited changes and try again."
+        exit 6
+    fi
+
+    STARTPOINT=$(start_point "$FEATUREDRAFT")
+    git checkout $FEATUREBRANCH
+    git rebase -i $STARTPOINT
     exit
 
 elif [ "$DO" == 'u' ]; then

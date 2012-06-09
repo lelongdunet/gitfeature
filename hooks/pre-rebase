@@ -29,12 +29,16 @@ echo "Your in feature $CURRENTFEAT at $CURRENTNAMESPACE"
 #Ensure the hold directory is empty
 rm -f "$FEATREBASEDIR"/*
 
-if [[ $(git rev-list --count $basebranch ^$DEVREF) == 0 ]]; then
+#Check if DEVREF is between the branch and the base (or its fork point from DEVREF line)
+basetobranch=$(git rev-list $CURRENTBRANCH ^$basebranch)
+branchnodev=$(git rev-list $CURRENTBRANCH ^$DEVREF ^$basebranch)
+if [[ "$basetobranch" != "$branchnodev" ]]; then
     echo "########### -- ERROR -- ###################"
-    echo "Your rebase cover $DEVREF which is not supposed to be rewritten"
+    echo "Commits of $DEVREF are in your rebase"
+    echo "These commits are not supposed to be rewritten!"
     exit 1
 fi
- 
+
 if [[ "$CURRENTNAMESPACE" == "$STARTNAMESPACE" ]]; then
     echo "########### -- ERROR -- ###################"
     echo "Never move nor commit manually this reference, this is a marker automatically managed"
@@ -48,7 +52,7 @@ if [[ "$CURRENTNAMESPACE" == "$DRAFTNAMESPACE" || "$CURRENTNAMESPACE" == "$FINAL
     echo $CURRENT > "$FEATREBASEDIR"/current
     echo $@ > "$FEATREBASEDIR"/args
 
-    #Check the start point
+    #Check if the start point is between the branch and the DEVREF line
     notindevref=$(git rev-list "$basebranch" "^$DEVREF")
     onlyinbase=$(git rev-list "$basebranch" "^$DEVREF" "^$CURRENTBRANCH")
     if [ ! "$onlyinbase" == "$notindevref" ]; then

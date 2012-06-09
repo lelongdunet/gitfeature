@@ -468,16 +468,19 @@ elif [ "$DO" == 'f' ]; then
 
     exit
 elif [ "$DO" == 'm' ]; then
-    if ! git rev-parse $FEATUREDRAFT &> /dev/null; then
+    if [ -n "$EXISTFINAL" ]; then
+        if ! git rev-parse $FEATUREFINAL &> /dev/null; then
+            echo "$FEATURE is already being finalized by you or someone else." ' *'/$FEATUREFINAL branches are detected.
+            echo -e "$EXISTFINAL"
+            echo "You should not move a feature being finalizd"
+            exit 5
+        fi
+        FEATUREBRANCH=$FEATUREFINAL
+    elif ! git rev-parse $FEATUREDRAFT &> /dev/null; then
         echo "No local branch $FEATUREDRAFT to move"
         exit 10
-    fi
-
-    if [ -n "$EXISTFINAL" ]; then
-        echo "$FEATURE is already being finalized by you or someone else." ' *'/$FEATUREFINAL branches are detected.
-        echo -e "$EXISTFINAL"
-        echo "You should not move a feature being finalizd"
-        exit 5
+    else
+        FEATUREBRANCH=$FEATUREDRAFT
     fi
 
     #Check if repo is clean
@@ -488,8 +491,7 @@ elif [ "$DO" == 'm' ]; then
     fi
 
     STARTPOINT=$(start_point "$FEATUREDRAFT")
-
-    git rebase --onto $MOVETO $STARTPOINT $FEATUREDRAFT
+    git rebase --onto $MOVETO $STARTPOINT $FEATUREBRANCH
     exit
 
 elif [ "$DO" == 'u' ]; then

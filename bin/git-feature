@@ -516,6 +516,7 @@ elif [ "$DO" == 'm' ]; then
     then
         export NEWSTARTPOINT=$MOVETO
     fi
+    echo git rebase --onto $MOVETO $STARTPOINT $FEATUREBRANCH
     git rebase --onto $MOVETO $STARTPOINT $FEATUREBRANCH
     exit
 

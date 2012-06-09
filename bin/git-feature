@@ -504,6 +504,14 @@ elif [ "$DO" == 'm' ]; then
     fi
 
     STARTPOINT=$(start_point "$FEATUREDRAFT")
+    echo '>> '$STARTPOINT
+
+    #If there is start marker or if new base does not coincide with DEVREF,
+    # a start_point must be created or moved
+    if git show-ref $FEATURESTART &> /dev/null || test $(git rev-list --count ^$DEVREF $MOVETO) != 0
+    then
+        export NEWSTARTPOINT=$MOVETO
+    fi
     git rebase --onto $MOVETO $STARTPOINT $FEATUREBRANCH
     exit
 

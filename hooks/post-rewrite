@@ -15,7 +15,9 @@ if [[ "$1" == rebase ]]; then
     if [ -f "$FEATREBASEDIR/start" ]; then
         STARTNAME=$(<"$FEATREBASEDIR/start")
         #Get SHA-1 of first new commit
-        if [ -f "$FEATREBASEDIR/checkorder" ]; then
+        if [ -f "$FEATREBASEDIR/newstart" ]; then
+            NEWSTART=$(<"$FEATREBASEDIR/newstart")
+        elif [ -f "$FEATREBASEDIR/checkorder" ]; then
             #TODO Check the order of new branch is still the same
             OLDSTART=$(git rev-parse $STARTNAME)
             NEWSTART=$(echo -e "$COMMITLIST"|sed "/^$OLDSTART/"'!D;s/^.*\s\(\w*\)$/\1/')

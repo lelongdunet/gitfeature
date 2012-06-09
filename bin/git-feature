@@ -476,8 +476,12 @@ elif [ "$DO" == 'f' ]; then
 
     git branch -t $FEATUREFINAL $STARTPOINT
     git branch -f $FEATUREFINAL $FEATDRAFT
-    #TODO : Check if DEVREF must be replaced by another final branch
-    git rebase -i --onto $DEVREF $STARTPOINT $FEATUREFINAL
+    #Check if STARTPOINT is in DEVREF line
+    if [ $(git rev-list --count $STARTPOINT ^$DEVREF) == 0 ]; then
+        git rebase -i $DEVREF $FEATUREFINAL
+    else
+        git rebase -i $STARTPOINT $FEATUREFINAL
+    fi
 
     exit
 elif [ "$DO" == 'm' ]; then

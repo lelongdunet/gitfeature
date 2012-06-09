@@ -1,0 +1,75 @@
+#!/bin/bash
+#
+# Rebase hook script for feature management
+
+basebranch="$1"
+if test "$#" = 2
+then
+	CURRENT="refs/heads/$2"
+else
+    # we do not interrupt rebasing detached HEAD
+	CURRENT=`git symbolic-ref HEAD` || exit 0 
+fi
+
+FINALNAMESPACE='final'
+DRAFTNAMESPACE='draft'
+STARTNAMESPACE='start'
+
+GITDIR=$(git rev-parse --git-dir)
+DEVREF=$(git config workflow.devref)
+
+FEATREBASEDIR=$GITDIR/feat_rebase
+
+CURRENTBRANCH=${CURRENT##refs/heads/}
+CURRENTNAMESPACE=$(dirname $CURRENTBRANCH)
+CURRENTFEAT=$(basename $CURRENT)
+
+echo "Your in feature $CURRENTFEAT at $CURRENTNAMESPACE"
+
+#Ensure the hold directory is empty
+rm -f "$FEATREBASEDIR"/*
+
+if [[ "$CURRENTNAMESPACE" == "$STARTNAMESPACE" ]]; then
+    echo "########### -- ERROR -- ###################"
+    echo "Never move nor commit manually this reference, this is a marker automatically managed"
+    echo "You must never rebase nor commit in $STARTNAMESPACE/$CURRENTFEAT"
+    exit 1
+fi
+
+if [[ "$CURRENTNAMESPACE" == "$DRAFTNAMESPACE" || "$CURRENTNAMESPACE" == "$FINALNAMESPACE" ]]; then
+    mkdir -p ""$FEATREBASEDIR""
+    echo $basebranch > "$FEATREBASEDIR"/basebranch
+    echo $CURRENT > "$FEATREBASEDIR"/current
+    echo $@ > "$FEATREBASEDIR"/args
+
+    #Check the start point
+    notindevref=$(git rev-list "$basebranch" "^$DEVREF")
+    onlyinbase=$(git rev-list "$basebranch" "^$DEVREF" "^$CURRENTBRANCH")
+    if [ ! "$onlyinbase" == "$notindevref" ]; then
+        #The start point does not coincide with devref
+        if starthash=$(git rev-parse $STARTNAMESPACE/$CURRENTFEAT 2> /dev/null); then
+            if [[ ! "$starthash" == "$(git rev-parse $basebranch)" ]]; then
+                echo "########### -- ERROR -- ###################"
+                echo "The feature start point does not feat the base!"
+                exit 1
+            fi
+        else
+            echo "########### -- ERROR -- ###################"
+            echo "No local startpoint defined for the feature $CURRENTFEAT"
+            echo "Please set your startpoint if you don't rebase from $DEVREF"
+            exit 1
+        fi
+        echo $STARTNAMESPACE/$CURRENTFEAT > "$FEATREBASEDIR/start"
+    elif git rev-parse $STARTNAMESPACE/$CURRENTFEAT &> /dev/null; then
+        if [ -n "$(git rev-list $STARTNAMESPACE/$CURRENTFEAT ^$basebranch)" ]; then
+            echo "----------- -- WARNING -- -----------------"
+            echo "The start point $STARTNAMESPACE/$CURRENTFEAT is not considered"
+            echo "BE SURE NOT TO SQUASH, EDIT NOR TO REORDER COMMITS !"
+            echo "Press enter to continue ..."
+            read
+            echo true > "$FEATREBASEDIR/checkorder"
+            echo $STARTNAMESPACE/$CURRENTFEAT > "$FEATREBASEDIR/start"
+        fi
+    fi
+fi
+

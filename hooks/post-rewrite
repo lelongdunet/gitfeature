@@ -1,0 +1,29 @@
+#!/bin/bash
+#
+# Rewrite hook script for feature management
+
+FINALNAMESPACE='final'
+DRAFTNAMESPACE='draft'
+
+GITDIR=$(git rev-parse --git-dir)
+DEVREF=$(git config workflow.devref)
+
+FEATREBASEDIR=$GITDIR/feat_rebase
+COMMITLIST=$(cat)
+
+if [[ "$1" == rebase ]]; then
+    if [ -f "$FEATREBASEDIR/start" ]; then
+        STARTNAME=$(<"$FEATREBASEDIR/start")
+        #Get SHA-1 of first new commit
+        if [ -f "$FEATREBASEDIR/checkorder" ]; then
+            #TODO Check the order of new branch is still the same
+            OLDSTART=$(git rev-parse $STARTNAME)
+            NEWSTART=$(echo -e "$COMMITLIST"|sed "/^$OLDSTART/"'!D;s/^.*\s\(\w*\)$/\1/')
+        else
+            FIRST=$(echo -e "$COMMITLIST"|sed '1!D;s/^.*\s\(\w*\)$/\1/')
+            NEWSTART="$FIRST^"
+        fi
+        git branch -f "$STARTNAME" "$NEWSTART"
+    fi
+fi
+

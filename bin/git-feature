@@ -1,0 +1,605 @@
+#!/bin/bash
+
+TMPFILE=/tmp/featuretmp
+HOOKRELPATH=../hooks
+VER="v0.1"
+
+
+
+if ! GITDIR=$(git rev-parse --git-dir); then
+    exit 1
+fi
+
+menuselect()
+{
+    echo "-----------------"
+    MENUITEMS="$(echo -e "$1" | cat -n)"
+    if ! dialog --menu "$2" 40 100 15 $MENUITEMS  2> "$TMPFILE"; then
+        return 1
+    fi
+    echo -e "$MENUITEMS" | sed "/^\s*$(<"$TMPFILE")/!D;s/^\s*\w*\s*//" > "$TMPFILE"
+}
+
+initialize()
+{
+    if INST_VER=$(git config workflow.feature); then
+        echo "Feature management already initialized"
+        return
+    fi
+
+    git config workflow.fetchinter 24
+
+    CANDIDATES=$(git branch -a | \
+        sed '/final\//D;/draft\//D;/start\//D;/test\//D;/tmp\//D;/->/D;s/^.\s*//')
+    if ! menuselect "$CANDIDATES" "Choose the main devel branch"; then
+        echo ""
+        echo "Initialization aborted"
+        exit
+    fi
+    DEVREF=$(<"$TMPFILE")
+
+    
+    if ! menuselect "$(git remote)" "Choose your public repo where you will push"; then
+        echo ""
+        echo "Initialization aborted"
+        exit
+    fi
+
+    REMOTE=$(<"$TMPFILE")
+    git config workflow.devref "$DEVREF"
+    git config workflow.remote "$REMOTE"
+
+    #Install hook
+    HOOKPATH="$(dirname "$(readlink -f "$0")")/$HOOKRELPATH"
+    echo "Getting hooks from $HOOKPATH"
+    if ! cp -a "$HOOKPATH/"* $GITDIR/hooks/; then
+        exit
+    fi
+
+    git config workflow.feature $VER
+}
+
+usage()
+{
+cat << EOF
+usage: $0 options
+
+This script create new and manage feature branches :
+$0 [options] featurename
+
+Default action is creating a new branch, other are provided through options
+OPTIONS:
+   -a      Perform the given action
+            > merge : Merge all features in a single branch
+            > finalize : Finalize the feature
+            > init : Initialize current repository to handle features
+            > devref : Change the devref ( it must always contain the old one )
+            > view : View local features and there remote updates
+            > view all : View local features and all updated remote features
+            > update : Update the specified feature using rebase
+   -b      Give a specific branch on which to base the new feature
+   -c      Check feature (push and final)
+   -m      Move the feature upon a new base
+   -f      Finalize the feature.
+   -t      Dummy option for test purpose.
+   -p      Push the given feature
+   -P      Push all local features ( TODO )
+   -u      Update the specified feature using rebase (Same as -a update )
+   -h      Display this help.
+EOF
+}
+
+################################################################################
+#   Get arguments
+################################################################################
+
+DO='n' # Default action is new feature
+
+while getopts "fm:tb:a:hucvp" OPTION; do
+    case $OPTION in
+        a)
+            case $OPTARG in
+                merge)
+                    echo 'Merge not implemented yet.'
+                    exit
+                    ;;
+                finalize)
+                    DO='f'
+                    ;;
+                init)
+                    echo 'Initializing feature management in your repo'
+                    initialize devel
+                    exit
+                    ;;
+                devref)
+                    DO='d'
+                    EXPECTED=1
+                    ;;
+                view)
+                    DO='v'
+                    EXPECTED=1
+                    ;;
+                update)
+                    DO='u'
+                    ;;
+
+            esac
+            ;;
+        c)
+            DO='c'
+            ;;
+        b)
+            FOLLOW=$OPTARG
+            ;;
+        u)
+            DO='u'
+            ;;
+        m)
+            MOVETO=$OPTARG
+            DO='m'
+            ;;
+        #s)        #> Specify the feature already exists and you want to share it (take no arg)
+        #    DO='e'
+        #    ;;
+        f)
+            DO='f'
+            ;;
+        t)
+            DO='t'
+            ;;
+        v)
+            DO='v'
+            EXPECTED=1
+            ;;
+        p)
+            DO='p'
+            ;;
+        h)
+            usage
+            exit
+    esac
+done
+
+shift $((OPTIND-1))
+if [ "$EXPECTED" == none ]; then
+    if [ $# -gt 0 ]; then
+        echo "No args expected! "
+        exit 1
+    fi
+elif [ -n "$EXPECTED" ]; then
+    ARG=$1
+elif [ $# == 1 ]; then
+    FEATUREBRANCH=$1
+elif test "$DO" != 'n' && CURRENT=$(git symbolic-ref HEAD 2> /dev/null); then
+    FEATUREBRANCH=${CURRENT##refs/heads/}
+else
+    usage
+    exit 3
+fi
+
+if [ -n "$FEATUREBRANCH" ]; then
+    FEATURE=$(basename $FEATUREBRANCH)
+elif [[ -z "$EXPECTED" ]]; then
+    echo "No feature name or branch provided!"
+    exit 1
+fi
+
+################################################################################
+#   Check and prepare environment
+################################################################################
+
+INST_VER=$(git config workflow.feature)
+if [[ ! "$INST_VER" == "$VER" ]]; then
+    echo "Feature is not installed or needs to be updated"
+    echo "Run $0 -a init"
+    exit -1
+fi
+
+if ! DEVREF=$(git config workflow.devref); then
+    echo "The git config workflow.devref parameter must be define"
+    exit 6
+fi
+
+DEVREFHASH=$(git rev-parse $DEVREF)
+STARTNAMESPACE='start'
+DRAFTNAMESPACE='draft'
+FINALNAMESPACE='final'
+FEATURESTART="$STARTNAMESPACE/$FEATURE"
+FEATUREDRAFT="$DRAFTNAMESPACE/$FEATURE"
+FEATUREFINAL="$FINALNAMESPACE/$FEATURE"
+
+#Check if the feature name already exists
+EXISTING="$(git show-ref $FEATURE)"
+EXISTDRAFT="$(echo -e "$EXISTING" | grep "$FEATUREDRAFT" )"
+EXISTFINAL="$(echo -e "$EXISTING" | grep "$FEATUREFINAL" )"
+
+if [ ! "$FEATURE" == "$FEATUREBRANCH" ]; then
+    FEATUREDIR=$(dirname $FEATUREBRANCH)
+    FEATURENAMESPACE=$(basename $FEATUREDIR)
+    FEATUREREMOTE=$(dirname $FEATUREDIR)
+
+    if [[ ! ( "$FEATURENAMESPACE" == "$DRAFTNAMESPACE" || "$FEATURENAMESPACE" == "$FINALNAMESPACE" ) ]]; then
+        echo "Invalid domain $FEATURENAMESPACE.\
+            You must provide a $FEATUREDRAFT or a $FEATUREFINAL feature branch."
+        exit 20
+    fi
+else
+    FEATUREBRANCH=$DRAFTNAMESPACE/$FEATURE
+fi
+
+################################################################################
+#   Function definitions
+################################################################################
+
+function start_point()
+{
+    WORKINGBRANCH=$1
+    STARTLIST=$(git show-ref $FEATURESTART)
+    if [ -z "$STARTLIST" ]; then
+        DEPEND="$(list_feat_depend $WORKINGBRANCH)"
+        if [ -z "$DEPEND" ]; then
+            START=$DEVREF
+        else
+            echo "Features are detected between $DEVREF and $WORKINGBRANCH but there is no 'start'" >&2
+            echo 'marker *'"$FEATURESTART. Detected features are :" >&2
+            echo -e "$DEPEND" >&2
+            echo '------------------------------------------------------------' >&2
+            echo 'You should check it before making operations on your feature' >&2
+            exit 1
+        fi
+    else
+        if [ "$(echo -e "$STARTLIST"|wc -l)" == 1 ]; then
+            #If there is only one start point it is used
+            START=$(echo -e "$STARTLIST" | sed 's#^.*refs/\w*/\(.*\)\s*$#\1#')
+        elif echo -e "$STARTLIST" | grep refs/heads/$FEATURESTART &> /dev/null ; then
+            #Is there a local start point
+            START=$FEATURESTART
+        else
+            #A remote start point must be chosen
+            echo "Several remote start points are found :" >&2
+            echo -e "$STARTLIST" >&2
+            echo '------------------------------------------------------------' >&2
+            echo "Are you sure this is normal. If you are sure tell me wich I have to use by creating a local one" >&2
+            exit 1
+        fi
+    fi
+    echo $START
+}
+
+#List features on which we are based
+function list_feat_depend()
+{
+    WORKINGBRANCH=$1
+    LIST=$(git rev-list  --simplify-by-decoration --pretty='format:%d' "$WORKINGBRANCH" "^$DEVREF" | \
+        sed '/^\s*(/H;$!D;$g;s/[(), \n]\+/\n/g' | \
+        sed "/$FEATURE"'$/D;'"/$DRAFTNAMESPACE"'\/\w*$/H;'"/$FINALNAMESPACE"'\/\w*$/H;$!D;$g' | \
+        sed 's/^\s*$//')
+
+    echo -e "$LIST"
+}
+
+function branch_list()
+{
+    git branch $@ | sed 's/^.\s*//'
+}
+
+function check_final()
+{
+    featname=$(basename $1)
+    finalname=$FINALNAMESPACE/$featname
+    finallist=$(branch_list --list $finalname)
+    if [ -n "$finallist" ]; then
+        finallist="$finallist "
+    fi
+    finallist=$finallist$(branch_list -r --contains $DEVREF --list '*/'$finalname)
+    if [ -z "$finallist" ]; then
+        finallist=$(branch_list -r --list '*/'$finalname)
+    fi
+
+    echo "$finallist"
+}
+
+function get_feat_ref()
+{
+    FEATREMOTE=$(git config branch."$FEATUREDRAFT".remote)
+    FEATREBASE=$(git config branch."$FEATUREDRAFT".merge \
+        | sed 's#refs/\w*/##')
+    if [ "$FEATREMOTE" == '.' ]; then
+        echo "$FEATREBASE"
+    else
+        echo "$FEATREMOTE/$FEATREBASE"
+    fi
+}
+
+function list_locals()
+{
+    LOCALFEAT=$(branch_list --list 'draft/*')
+    LOCALFEAT=$LOCALFEAT$(branch_list --list 'final/*')
+    FEATLIST=''
+    for feat in $LOCALFEAT; do
+        finalfeat=$(check_final $feat)
+        if [ -z "$finalfeat" ]; then
+           FEATLIST="$FEATLIST$feat "
+           FEATLIST="$FEATLIST$(branch_list -r --contains $DEVREF --list '*/'$feat) "
+       else
+           FEATLIST="$FEATLIST$finalfeat "
+       fi
+   done
+
+   echo $FEATLIST
+}
+
+function list_updated_remote()
+{
+    REMOTEFEAT=$(branch_list -r --contains $DEVREF --list '*/draft/*')
+    FEATLIST=''
+    for feat in $REMOTEFEAT; do
+        finalfeat=$(check_final $feat)
+        if [ -z "$finalfeat" ]; then
+            FEATLIST="$FEATLIST$finalfeat "
+        else
+            FEATLIST="$FEATLIST$feat "
+        fi
+    done
+
+    echo $REMOTEFEAT
+}
+
+function check_remote()
+{
+    ERR=0
+    REMOTE=$(git config workflow.remote)
+    LIST=$(git branch -r --list "$REMOTE/$FINALNAMESPACE"'/*')
+    LIST="$LIST $(git branch -r --list "$REMOTE/$DRAFTNAMESPACE"'/*')"
+    for b in $LIST; do
+        feat=$(basename $b)
+        if git rev-parse $STARTNAMESPACE/$feat &> /dev/null; then
+            if ! git rev-parse $REMOTE/$STARTNAMESPACE/$feat &> /dev/null; then
+                echo "# > Feature $feat is not correctly pushed! You must run"
+                echo "git push $REMOTE $STARTNAMESPACE/$feat"
+                ERR=1
+            fi
+        fi
+    done
+    return $ERR
+}
+
+#Check the state of features on which we are based
+# function check_feat_depend()
+# {
+# }
+
+################################################################################
+#   Proceed
+################################################################################
+if test "$DO" != 'p' && ! check_remote; then
+    exit 1
+fi
+
+
+#Change DEVREF
+if [ "$DO" == 'd' ]; then
+    #git branch --contains $DEVREF
+    if test -n "$ARG" && git rev-parse "$ARG" &> /dev/null ; then
+        NEWREF=$ARG
+        #Check if new reference contains old reference
+        if [ -n "$(git rev-list $DEVREF ^$NEWREF)" ]; then
+            echo "The new devel reference must contain $DEVREF"
+            exit 1
+        fi
+    else
+        CANDIDATES=$(git branch --contains $DEVREF | sed 's/^.\s*//')
+        menuselect "$CANDIDATES" "Choose the main devel branch"
+        NEWREF=$(<"$TMPFILE")
+    fi
+
+    echo ""
+    echo "New devel reference is $NEWREF"
+    git config workflow.devref $NEWREF
+    exit
+
+#Push feature
+elif [ "$DO" == 'p' ]; then
+    REMOTE=$(git config workflow.remote)
+    if git rev-parse $FEATUREFINAL &> /dev/null; then
+        git push $REMOTE $FEATUREFINAL
+        if git rev-parse $REMOTE/$FEATUREDRAFT &> /dev/null; then
+            git push $REMOTE :$FEATUREDRAFT
+        fi
+    elif git show-rev $FEATUREFINAL &> /dev/null; then 
+        if git rev-parse $REMOTE/$FEATUREDRAFT &> /dev/null; then
+            git push $REMOTE :$FEATUREDRAFT
+        fi
+    elif git rev-parse $FEATUREDRAFT &> /dev/null; then
+        git push $REMOTE $FEATUREDRAFT
+    fi 
+    if git rev-parse $FEATURESTART &> /dev/null; then
+        git push $REMOTE $FEATURESTART
+    fi
+
+    exit
+    
+#Check feature
+elif [ "$DO" == 'c' ]; then
+    exit
+
+#View using gitk
+elif [ "$DO" == 'v' ]; then
+    BRANCHLIST=""
+    echo "Getting list of branch ..."
+    BRANCHLIST=$(list_locals)
+    if [ "$ARG" == all ]; then
+        BRANCHLIST="$BRANCHLIST $(list_updated_remote)"
+    fi
+
+    echo $BRANCHLIST
+    echo "---------------------------------------"
+    gitk $BRANCHLIST
+
+    exit
+
+#Finalize feature
+elif [ "$DO" == 'f' ]; then
+    if [ -z "$EXISTDRAFT" ]; then
+        echo "No draft branch found for feature $FEATURE found!"
+        exit 4
+    fi
+
+    if [ -n "$EXISTFINAL" ]; then
+        echo "$FEATURE is already being finalized by you or someone else." ' *'/$FEATUREFINAL branches are detected.
+        echo -e "$EXISTFINAL"
+        exit 5
+    fi
+
+    #Check if repo is clean
+    if ! git diff --quiet HEAD; then
+        echo "The repository needs to be clean for this operation."
+        echo "Please clean uncommited changes and try again."
+        exit 6
+    fi
+
+    STARTPOINT=$(start_point $FEATUREBRANCH)
+
+    git branch -t $FEATUREFINAL $STARTPOINT
+    git branch -f $FEATUREFINAL $FEATDRAFT
+    #TODO : Check if DEVREF must be replaced by another final branch
+    git rebase -i --onto $DEVREF $STARTPOINT $FEATUREFINAL
+
+    exit
+elif [ "$DO" == 'm' ]; then
+    if ! git rev-parse $FEATUREDRAFT &> /dev/null; then
+        echo "No local branch $FEATUREDRAFT to move"
+        exit 10
+    fi
+
+    if [ -n "$EXISTFINAL" ]; then
+        echo "$FEATURE is already being finalized by you or someone else." ' *'/$FEATUREFINAL branches are detected.
+        echo -e "$EXISTFINAL"
+        echo "You should not move a feature being finalizd"
+        exit 5
+    fi
+
+    #Check if repo is clean
+    if ! git diff --quiet HEAD; then
+        echo "The repository needs to be clean for this operation."
+        echo "Please clean uncommited changes and try again."
+        exit 6
+    fi
+
+    STARTPOINT=$(start_point "$FEATUREDRAFT")
+
+    git rebase --onto $MOVETO $STARTPOINT $FEATUREDRAFT
+    exit
+
+elif [ "$DO" == 'u' ]; then
+    #Check if no final branch
+    if [ -n "$EXISTFINAL" ]; then
+        #Check if the branch is local
+        if ! git rev-parse $FEATUREFINAL &> /dev/null; then
+            echo "This operation can only be done on local final branch"
+            exit 10
+        fi
+        FEATUREBRANCH=$FEATUREFINAL
+    else
+        #Check if the branch is local
+        if ! git rev-parse $FEATUREDRAFT &> /dev/null; then
+            echo "This operation can only be done on local draft branch"
+            exit 10
+        fi
+        FEATUREBRANCH=$FEATUREDRAFT
+    fi
+
+    #Check if repo is clean
+    if ! git diff --quiet HEAD; then
+        echo "The repository needs to be clean for this operation."
+        echo "Please clean uncommited changes and try again."
+        exit 6
+    fi
+
+
+    STARTPOINT=$(start_point "$FEATUREDRAFT")
+    FEATUREBASE=$(get_feat_ref)
+    #TODO Check for other refs between start point and branch end.
+    if [ "$(git rev-parse $FEATUREDRAFT)" == "$DEVREFHASH" ]; then
+        git checkout "$FEATUREBRANCH"
+        git rebase
+    elif [ -z "$(git rev-list $FEATUREBASE ^$DEVREF)" ]; then
+        echo git rebase --onto "$FEATUREBASE" "$STARTPOINT" "$FEATUREDRAFT"
+        git rebase --onto "$FEATUREBASE" "$STARTPOINT" "$FEATUREDRAFT"
+    else
+        echo "Previous feature $FEATUREBASE is not updated"
+        echo "Rebase everything on devel"
+        export BRANCHREPORT=$STARTPOINT
+        git rebase $DEVREF $FEATUREDRAFT
+    fi
+    exit
+
+elif [ "$DO" == 'e' ]; then
+    # ====== Not used now =======
+    if [ -z "$EXISTING" ]; then
+        echo "No feature $FEATURE found!"
+        exit 4
+    fi
+
+    dialog --menu "Choose which branch you to be based on" 40 100 15 1 $EXISTING 2> "$TMPFILE"
+
+elif [ "$DO" == 't' ]; then
+    echo FEATURE      : $FEATURE
+    echo DEVREF       : $DEVREF
+    echo DEVREFHASH   : $DEVREFHASH
+    echo STARTNAMESPACE  : $STARTNAMESPACE
+    echo DRAFTNAMESPACE  : $DRAFTNAMESPACE
+    echo FINALNAMESPACE  : $FINALNAMESPACE
+    echo FEATURESTART : $FEATURESTART
+    echo FEATUREDRAFT : $FEATUREDRAFT
+    echo FEATUREFINAL : $FEATUREFINAL
+    echo EXISTING     : $EXISTING
+    echo EXISTDRAFT   : $EXISTDRAFT
+    echo EXISTFINAL   : $EXISTFINAL
+    echo FEATUREDIR   : $FEATUREDIR
+    echo FEATUREBRANCH : $FEATUREBRANCH
+    echo FEATURENAMESPACE : $FEATURENAMESPACE
+    echo FEATUREREMOTE : $FEATUREREMOTE
+
+    echo 'start > ' $(start_point $FEATUREBRANCH)
+    echo "Do nothing ..."
+    exit
+
+else
+    if [ -n "$EXISTING" ]; then
+        echo "The name $FEATURE has been found in existing branches"
+        echo "Choose another name for your new feature"
+        exit 5
+    fi
+
+    if [ -z "$FOLLOW" ]; then
+        FOLLOW="$DEVREF"
+    fi
+fi
+
+DISTANCE=$(git rev-list --count $DEVREF ^$FOLLOW)
+if [ ! "$DISTANCE" == 0 ]; then
+    echo "Your base must contain the main devel branch : $DEVREF"
+    echo "Ensure your base is correct and / or rebase it if needed before creating your new feature"
+    exit 7
+fi
+
+if [ ! "$(git rev-parse $FOLLOW)" == "$DEVREFHASH" ]; then
+    echo "Provide distant start point"
+    git branch $FEATURESTART $FOLLOW
+fi
+git branch -t $FEATUREDRAFT $FOLLOW
+git config branch.$FEATUREDRAFT.rebase true
+
+echo "You can now implement your new feature in branch $FEATUREDRAFT"
+
+#Check if repo is clean
+if ! git diff --quiet HEAD; then
+    echo "It can't be checked out now because your repository is not clean now"
+    echo "you can get it by > git checkout $FEATUREDRAFT"
+    echo "but you should FIRST CLEAN YOUR REPOSITORY"
+else
+    git checkout $FEATUREDRAFT
+fi
+
+

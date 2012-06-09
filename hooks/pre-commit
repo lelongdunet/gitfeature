@@ -1,0 +1,108 @@
+#!/bin/bash
+#
+# Commit hook script for feature management
+
+if git-rev-parse --verify HEAD >/dev/null 2>&1
+then
+	against=HEAD
+else
+	# Initial commit: diff against an empty tree object
+	against=4b825dc642cb6eb9a060e54bf8d69288fbee4904
+fi
+
+FINALNAMESPACE='final'
+DRAFTNAMESPACE='draft'
+STARTNAMESPACE='start'
+
+GITDIR=$(git rev-parse --git-dir)
+DEVREF=$(git config workflow.devref)
+FEATREBASEDIR=$GITDIR/feat_rebase
+
+#Perform some regular checks
+if FETCHINTER=$(git config workflow.fetchinter); then
+    FETCHINTER_S=$(($FETCHINTER*3600))
+    FETCHAGE=$(($(date +%s) - $(date -r "$GITDIR/FETCH_HEAD" +%s)))
+    if [[ $FETCHAGE -gt $FETCHINTER_S ]]; then
+        echo "########### -- ERROR -- ###################"
+        echo "You made no fetch for more than $FETCHINTER hours"
+        echo "You should at least update the main branch $DEVREF"
+        echo ""
+        echo "If you are really unable to fetch now you can avoid this error by running"
+        echo " touch $GITDIR/FETCH_HEAD"
+        echo "-------------------------------------------------------------------------"
+        exit 1
+    fi
+fi
+
+#Check if a valid branch is available as head
+if CURRENT=$(git symbolic-ref HEAD 2> /dev/null); then
+    CURRENTNAMESPACE=$(dirname ${CURRENT##refs/heads/})
+    CURRENTFEAT=$(basename $CURRENT)
+
+    if [[ "$CURRENTNAMESPACE" == "$STARTNAMESPACE" ]]; then
+        echo "########### -- ERROR -- ###################"
+        echo "Never move nor commit manually this reference, this is a marker automatically managed"
+        echo "You must never rebase nor commit in $STARTNAMESPACE/$CURRENTFEAT"
+        echo "###########################################"
+        exit 1
+    fi
+
+    if [[ "$CURRENTNAMESPACE" == "$FINALNAMESPACE" ]]; then
+        echo "########### -- ERROR -- ###################"
+        echo "You should not commit in a $FINALNAMESPACE branch"
+        echo "###########################################"
+        exit 1
+    fi
+
+    if [[ "$CURRENTNAMESPACE" == "$DRAFTNAMESPACE" ]]; then
+        #Check if the branch is updated (DEVREF must be in history)
+        DISTANCE=$(git rev-list --count $DEVREF ^$against)
+        if [ ! "$DISTANCE" == 0 ]; then
+            echo "########### -- ERROR -- ###################"
+            echo "Your current branch is not based on $DEVREF"
+            echo "Run rebase before commiting!"
+            echo "  - The rebase can be mase using feature update with"
+            echo "git feature -u"
+            echo ""
+            echo "###########################################"
+            echo "  - You can save your index state using the stash with"
+            echo "git stash save --keep-index MYLASTCHANGE"
+            echo "git stash save MYLASTINDEX"
+            echo ""
+            echo "  - Then you will restore your index with"
+            echo "git stash apply"
+            echo "# > Check there are no conflicts"
+            echo "git stash drop"
+            echo "git add -u"
+            echo "git stash apply"
+            echo "# > Check there are no conflicts"
+            echo "git stash drop"
+            echo ""
+            echo "------------------------------------------"
+            exit 1
+        fi
+
+        #Check if there is final branch
+        FINALS=$(git show-ref $FINALNAMESPACE/$CURRENTFEAT)
+        if [[ -n "$FINALS" ]]; then
+            echo "The feature $CURRENTFEAT is already being finalized"
+            echo "you should not commit anymore in this branch"
+            exit 1
+        fi
+    fi
+fi
+
+FORBIDFILE='\.orig$|\.backup$'
+if git diff-index --cached --name-only $against | egrep "$FORBIDFILE"; then
+    echo 'Versionning of files with such name is forbiden'
+    exit 1
+fi
+
+MERGEMARK=$(git diff --cached -G'^<<<<<<')
+if [[ -n "$MERGEMARK" ]]; then
+    echo 'The patch you re about to commit seems to contain merge markers'
+    echo 'Check your conflicts are correctly ressolved and try again.'
+    exit 1
+fi
+
+

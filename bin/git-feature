@@ -1,4 +1,5 @@
 #!/bin/bash
+##>Git subcommand to manage features
 
 TMPFILE=/tmp/featuretmp
 HOOKRELPATH=../hooks

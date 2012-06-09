@@ -403,19 +403,19 @@ if [ "$DO" == 'd' ]; then
 elif [ "$DO" == 'p' ]; then
     REMOTE=$(git config workflow.remote)
     if git rev-parse $FEATUREFINAL &> /dev/null; then
-        git push $REMOTE $FEATUREFINAL
+        git push -f $REMOTE $FEATUREFINAL
         if git rev-parse $REMOTE/$FEATUREDRAFT &> /dev/null; then
-            git push $REMOTE :$FEATUREDRAFT
+            git push -f $REMOTE :$FEATUREDRAFT
         fi
     elif git show-rev $FEATUREFINAL &> /dev/null; then 
         if git rev-parse $REMOTE/$FEATUREDRAFT &> /dev/null; then
-            git push $REMOTE :$FEATUREDRAFT
+            git push -f $REMOTE :$FEATUREDRAFT
         fi
     elif git rev-parse $FEATUREDRAFT &> /dev/null; then
-        git push $REMOTE $FEATUREDRAFT
+        git push -f $REMOTE $FEATUREDRAFT
     fi 
     if git rev-parse $FEATURESTART &> /dev/null; then
-        git push $REMOTE $FEATURESTART
+        git push -f $REMOTE $FEATURESTART
     fi
 
     exit

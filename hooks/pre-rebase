@@ -29,6 +29,12 @@ echo "Your in feature $CURRENTFEAT at $CURRENTNAMESPACE"
 #Ensure the hold directory is empty
 rm -f "$FEATREBASEDIR"/*
 
+if [[ $(git rev-list --count $basebranch ^$DEVREF) == 0 ]]; then
+    echo "########### -- ERROR -- ###################"
+    echo "Your rebase cover $DEVREF which is not supposed to be rewritten"
+    exit 1
+fi
+ 
 if [[ "$CURRENTNAMESPACE" == "$STARTNAMESPACE" ]]; then
     echo "########### -- ERROR -- ###################"
     echo "Never move nor commit manually this reference, this is a marker automatically managed"

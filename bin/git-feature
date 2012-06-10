@@ -536,13 +536,18 @@ elif [ "$DO" == 'i' ]; then
     NEWBASE=$(git rev-parse HEAD)
     STARTPOINT=$(start_point $FEATUREBRANCH) || exit 1
 
-    FEATUREINTEGRATE=integrate/$FEATURE
-    git branch -f $FEATUREINTEGRATE $CHOSENFINAL
+    if [[ "$STARTPOINT" == "$DEVREF" && -z "$(git rev-list "^$CHOSENFINAL" "$DEVREF")" ]]; then
+        git rebase $CHOSENFINAL
+        git tag '@'$FEATURE"_$(date '+%s')"
+    else
+        FEATUREINTEGRATE=integrate/$FEATURE
+        git branch -f $FEATUREINTEGRATE $CHOSENFINAL
 
-    export INTEGRATION=$FEATURE
-    export POSTCHECKOUT=$CURRENTBRANCH
-    echo git rebase --onto $NEWBASE $STARTPOINT $FEATUREINTEGRATE
-    git rebase --onto $NEWBASE $STARTPOINT $FEATUREINTEGRATE
+        export INTEGRATION=$FEATURE
+        export POSTCHECKOUT=$CURRENTBRANCH
+        echo git rebase --onto $NEWBASE $STARTPOINT $FEATUREINTEGRATE
+        git rebase --onto $NEWBASE $STARTPOINT $FEATUREINTEGRATE
+    fi
 
     exit
 

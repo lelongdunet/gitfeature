@@ -238,6 +238,12 @@ if [ ! "$FEATURE" == "$FEATUREBRANCH" ]; then
         exit 20
     fi
 else
+    if [ $# == 0 ]; then
+        echo "You are not in a feature branch"
+        echo "Either checkout the branch or provide the feature name in command line"
+        exit 1
+    fi
+
     FEATUREBRANCH=$DRAFTNAMESPACE/$FEATURE
 fi
 

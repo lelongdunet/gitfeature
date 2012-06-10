@@ -61,6 +61,7 @@ initialize()
 
     #Set alias
     git config alias.featpush "feature -p"
+    git config alias.featpushall "feature -P"
     git config alias.featmove "feature -m"
     git config alias.featclose "feature -a close"
     git config alias.featreview "feature -r"
@@ -96,7 +97,7 @@ OPTIONS:
    -f      Finalize the feature.
    -t      Dummy option for test purpose.
    -p      Push the given feature
-   -P      Push all local features ( TODO )
+   -P      Push all local features
    -r      Review commits of the branch ( git rebase -i )
    -u      Update the specified feature using rebase (Same as -a update )
    -h      Display this help.
@@ -110,7 +111,7 @@ EOF
 
 DO='n' # Default action is new feature
 
-while getopts "rfm:tb:a:hucvpi" OPTION; do
+while getopts "rfm:tb:a:hucvpiP" OPTION; do
     case $OPTION in
         a)
             case $OPTARG in
@@ -177,6 +178,10 @@ while getopts "rfm:tb:a:hucvpi" OPTION; do
             ;;
         p)
             DO='p'
+            ;;
+        P)
+            DO='P'
+            EXPECTED=none
             ;;
         h)
             usage
@@ -248,7 +253,7 @@ if [ ! "$FEATURE" == "$FEATUREBRANCH" ]; then
         exit 20
     fi
 else
-    if [ $# == 0 ]; then
+    if [[ $# == 0 && -z "$EXPECTED" ]]; then
         echo "You are not in a feature branch"
         echo "Either checkout the branch or provide the feature name in command line"
         exit 1
@@ -394,6 +399,30 @@ function check_remote()
     return $ERR
 }
 
+function push_feat()
+{
+    ARGFEAT=$(basename "$1")
+    ARGFEATFINAL=$FINALNAMESPACE/$ARGFEAT
+    ARGFEATDRAFT=$DRAFTNAMESPACE/$ARGFEAT
+    ARGFEATSTART=$STARTNAMESPACE/$ARGFEAT
+    REMOTE=$(git config workflow.remote)
+    if git rev-parse $ARGFEATFINAL &> /dev/null; then
+        git push -f $REMOTE $ARGFEATFINAL
+        if git rev-parse $REMOTE/$ARGFEATDRAFT &> /dev/null; then
+            git push -f $REMOTE :$ARGFEATDRAFT
+        fi
+    elif git show-rev $ARGFEATFINAL &> /dev/null; then 
+        if git rev-parse $REMOTE/$ARGFEATDRAFT &> /dev/null; then
+            git push -f $REMOTE :$ARGFEATDRAFT
+        fi
+    elif git rev-parse $ARGFEATDRAFT &> /dev/null; then
+        git push -f $REMOTE $ARGFEATDRAFT
+    fi 
+    if git rev-parse $ARGFEATSTART &> /dev/null; then
+        git push -f $REMOTE $ARGFEATSTART
+    fi
+}
+
 #Check the state of features on which we are based
 # function check_feat_depend()
 # {
@@ -505,25 +534,22 @@ elif [ "$DO" == 'i' ]; then
 
 #Push feature
 elif [ "$DO" == 'p' ]; then
-    REMOTE=$(git config workflow.remote)
-    if git rev-parse $FEATUREFINAL &> /dev/null; then
-        git push -f $REMOTE $FEATUREFINAL
-        if git rev-parse $REMOTE/$FEATUREDRAFT &> /dev/null; then
-            git push -f $REMOTE :$FEATUREDRAFT
+    push_feat "$FEATURE"
+    exit
+
+elif [ "$DO" == 'P' ]; then
+    for feat in $(branch_list --list "$DRAFTNAMESPACE"/'*'); do
+        if [ -z "$(git rev-parse "$FINALNAMESPACE/$feat" &> /dev/null)" ]; then
+            push_feat $feat
         fi
-    elif git show-rev $FEATUREFINAL &> /dev/null; then 
-        if git rev-parse $REMOTE/$FEATUREDRAFT &> /dev/null; then
-            git push -f $REMOTE :$FEATUREDRAFT
-        fi
-    elif git rev-parse $FEATUREDRAFT &> /dev/null; then
-        git push -f $REMOTE $FEATUREDRAFT
-    fi 
-    if git rev-parse $FEATURESTART &> /dev/null; then
-        git push -f $REMOTE $FEATURESTART
-    fi
+    done
+
+    for feat in $(branch_list --list "$FINALNAMESPACE"/'*'); do
+        push_feat $feat
+    done
 
     exit
-    
+        
 #Check feature
 elif [ "$DO" == 'c' ]; then
     exit

@@ -12,7 +12,17 @@ FEATREBASEDIR=$GITDIR/feat_rebase
 COMMITLIST=$(cat)
 
 if [[ "$1" == rebase ]]; then
-    if [ -f "$FEATREBASEDIR/start" ]; then
+    if [ -f "$FEATREBASEDIR/integration" ]; then
+        #Integration
+        FEATURE="$(<"$FEATREBASEDIR/integration")"
+        echo "Ending $FEATURE integration"
+        test -n "$FEATURE" || exit
+        git tag '@'$FEATURE"_$(date '+%s')"
+        POSTCHECKOUT="$(<"$FEATREBASEDIR/postcheckout")"
+        test -n "$POSTCHECKOUT" || exit
+        git branch -f "$POSTCHECKOUT" HEAD
+
+    elif [ -f "$FEATREBASEDIR/start" ]; then
         STARTNAME=$(<"$FEATREBASEDIR/start")
         OLDSTART=$(git rev-parse $STARTNAME)
         #Get SHA-1 of first new commit

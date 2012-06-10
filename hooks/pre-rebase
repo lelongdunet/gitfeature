@@ -46,6 +46,12 @@ if [[ "$CURRENTNAMESPACE" == "$STARTNAMESPACE" ]]; then
     exit 1
 fi
 
+if [[ -n "$INTEGRATION" ]]; then
+    echo "$INTEGRATION" > "$FEATREBASEDIR/integration"
+    echo "$POSTCHECKOUT" > "$FEATREBASEDIR/postcheckout"
+    exit 0
+fi
+
 if [[ "$CURRENTNAMESPACE" == "$DRAFTNAMESPACE" || "$CURRENTNAMESPACE" == "$FINALNAMESPACE" ]]; then
     mkdir -p ""$FEATREBASEDIR""
     echo $basebranch > "$FEATREBASEDIR"/basebranch

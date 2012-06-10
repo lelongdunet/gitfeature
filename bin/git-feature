@@ -65,6 +65,7 @@ initialize()
     git config alias.featreview "feature -r"
     git config alias.featfinalize "feature -f"
     git config alias.featupdate "feature -u"
+    git config alias.featintegrate "feature -i"
     git config alias.featview "feature -v"
     git config alias.featviewall "feature -a view all"
 }
@@ -97,6 +98,7 @@ OPTIONS:
    -r      Review commits of the branch ( git rebase -i )
    -u      Update the specified feature using rebase (Same as -a update )
    -h      Display this help.
+   -i      Include feature in current branch
 EOF
 }
 
@@ -106,7 +108,7 @@ EOF
 
 DO='n' # Default action is new feature
 
-while getopts "rfm:tb:a:hucvp" OPTION; do
+while getopts "rfm:tb:a:hucvpi" OPTION; do
     case $OPTION in
         a)
             case $OPTARG in
@@ -160,6 +162,9 @@ while getopts "rfm:tb:a:hucvp" OPTION; do
             ;;
         t)
             DO='t'
+            ;;
+        i)
+            DO='i'
             ;;
         v)
             DO='v'
@@ -418,6 +423,63 @@ if [ "$DO" == 'd' ]; then
     git config workflow.devref $NEWREF
     exit
 
+elif [ "$DO" == 'i' ]; then
+    FEATREBASEDIR=$GITDIR/feat_rebase
+    if [ -f "$FEATREBASEDIR/integration" ]; then
+        echo "JUST CLEAN THE PREVIOUS INTEGRATION"
+        FEATURE="$(<"$FEATREBASEDIR/integration")"
+        POSTCHECKOUT="$(<"$FEATREBASEDIR/postcheckout")"
+        test -n "$POSTCHECKOUT" && git checkout "$POSTCHECKOUT" &&
+        test -n "$FEATURE" && git branch -D "integrate/$FEATURE" &&
+        rm "$FEATREBASEDIR"/* &&
+        echo "Integration succesfull"
+        exit
+    fi
+   #Check if repo is clean
+    if ! git diff --quiet HEAD; then
+        echo "Your repository must be clean"
+        echo "Please commit all changes before running it!"
+        exit 2
+    fi
+
+    if ! CURRENT=$(git symbolic-ref HEAD 2> /dev/null); then
+        echo "You must be in a valid local branch for include operation!"
+        exit 1
+    fi
+    CURRENTBRANCH=${CURRENT##refs/heads/}
+
+    echo "Including $FEATURE in $CURRENTBRANCH"
+    if [ -z "$EXISTFINAL" ]; then
+        echo "No final branch found for inclusion of $FEATURE"
+        exit 1
+    fi
+
+    ABOVEREF=$(branch_list -a --contains $DEVREF --list '*'"$FEATUREFINAL")
+    if [ $(echo -e "$EXISTFINAL" | wc -l) == 1 ]; then
+        CHOSENFINAL=$(echo -e "$EXISTFINAL" | sed 's#^.*refs/\w*/\(.*\)\s*$#\1#')
+    elif [ -n "$ABOVEREF" && $(echo -e "$ABOVEREF" | wc -l) == 1 ]; then
+        CHOSENFINAL=$ABOVEREF
+    else
+        if ! menuselect "$EXISTFINAL" "Choose a final reference for the feature $FEATURE"; then
+            exit
+        fi
+        CHOSENFINAL=$(sed 's#^.*refs/\w*/\(.*\)\s*$#\1#' "$TMPFILE")
+    fi
+
+    #Get NEWBASE SHA-1
+    NEWBASE=$(git rev-parse HEAD)
+    STARTPOINT=$(start_point $FEATUREBRANCH) || exit 1
+
+    FEATUREINTEGRATE=integrate/$FEATURE
+    git branch -f $FEATUREINTEGRATE $CHOSENFINAL
+
+    export INTEGRATION=$FEATURE
+    export POSTCHECKOUT=$CURRENTBRANCH
+    echo git rebase --onto $NEWBASE $STARTPOINT $FEATUREINTEGRATE
+    git rebase --onto $NEWBASE $STARTPOINT $FEATUREINTEGRATE
+
+    exit
+
 #Push feature
 elif [ "$DO" == 'p' ]; then
     REMOTE=$(git config workflow.remote)
@@ -481,7 +543,7 @@ elif [ "$DO" == 'f' ]; then
     STARTPOINT=$(start_point $FEATUREBRANCH) || exit 1
 
     git branch -t $FEATUREFINAL $STARTPOINT
-    git branch -f $FEATUREFINAL $FEATDRAFT
+    git branch -f $FEATUREFINAL $FEATUREBRANCH
     #Check if STARTPOINT is in DEVREF line
     if [ $(git rev-list --count $STARTPOINT ^$DEVREF) == 0 ]; then
         git rebase -i $DEVREF $FEATUREFINAL

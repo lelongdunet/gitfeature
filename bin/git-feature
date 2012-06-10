@@ -83,25 +83,39 @@ $0 [options] featurename
 Default action is creating a new branch, other are provided through options
 OPTIONS:
    -a      Perform the given action
-            > merge : Merge all features in a single branch
+            > close : Check the feature is integrated and destroy all branches
+            > devref : Change the devref ( it must always contain the old one )
             > finalize : Finalize the feature
             > init : Initialize current repository to handle features
-            > devref : Change the devref ( it must always contain the old one )
+            > merge : Merge all features in a single branch
+            > update : Update the specified feature using rebase
             > view : View local features and there remote updates
             > view all : View local features and all updated remote features
-            > update : Update the specified feature using rebase
-            > close : Check the feature is integrated and destroy all branches
    -b      Give a specific branch on which to base the new feature
    -c      Check feature (push and final)
-   -m      Move the feature upon a new base
    -f      Finalize the feature.
-   -t      Dummy option for test purpose.
+   -h      Display this help.
+   -i      Include feature in current branch
+   -m      Move the feature upon a new base
    -p      Push the given feature
    -P      Push all local features
    -r      Review commits of the branch ( git rebase -i )
+   -t      Dummy option for test purpose.
    -u      Update the specified feature using rebase (Same as -a update )
-   -h      Display this help.
-   -i      Include feature in current branch
+
+ALIAS:
+The following alias can be used:
+    > featpush			"feature -p"
+    > featpushall		"feature -P"
+    > featmove			"feature -m"
+    > featclose			"feature -a close"
+    > featreview		"feature -r"
+    > featfinalize		"feature -f"
+    > featupdate		"feature -u"
+    > featintegrate		"feature -i"
+    > featview			"feature -v"
+    > featviewall		"feature -a view all"
+
 EOF
 }
 

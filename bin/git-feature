@@ -62,6 +62,7 @@ initialize()
     #Set alias
     git config alias.featpush "feature -p"
     git config alias.featmove "feature -m"
+    git config alias.featclose "feature -a close"
     git config alias.featreview "feature -r"
     git config alias.featfinalize "feature -f"
     git config alias.featupdate "feature -u"
@@ -88,6 +89,7 @@ OPTIONS:
             > view : View local features and there remote updates
             > view all : View local features and all updated remote features
             > update : Update the specified feature using rebase
+            > close : Check the feature is integrated and destroy all branches
    -b      Give a specific branch on which to base the new feature
    -c      Check feature (push and final)
    -m      Move the feature upon a new base
@@ -134,6 +136,9 @@ while getopts "rfm:tb:a:hucvpi" OPTION; do
                     ;;
                 update)
                     DO='u'
+                    ;;
+                close)
+                    DO='C'
                     ;;
 
             esac
@@ -421,6 +426,24 @@ if [ "$DO" == 'd' ]; then
     echo ""
     echo "New devel reference is $NEWREF"
     git config workflow.devref $NEWREF
+    exit
+
+#Close the feature
+elif [ "$DO" == 'C' ]; then
+    if [ -z "$EXISTFINAL" ]; then
+        echo "The feature is not even finalized. Nothing to do!"
+        exit 1
+    fi
+
+    if [ -z "$(git tag --list '@'$FEATURE'_*')" ]; then
+        echo "Integration tag not found. The feature cannot be closed"
+        exit 1
+    fi
+
+    git rev-parse $FEATUREDRAFT &> /dev/null && git branch -D $FEATUREDRAFT
+    git rev-parse $FEATUREFINAL &> /dev/null && git branch -D $FEATUREFINAL
+    git rev-parse $FEATURESTART &> /dev/null && git branch -D $FEATURESTART
+
     exit
 
 elif [ "$DO" == 'i' ]; then

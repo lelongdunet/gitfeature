@@ -31,7 +31,12 @@ initialize()
     git config workflow.fetchinter 24
 
     CANDIDATES=$(git branch -a | \
-        sed '/final\//D;/draft\//D;/start\//D;/test\//D;/tmp\//D;/->/D;s/^.\s*//')
+        sed '/(.*)/D;/final\//D;
+    /draft\//D;
+    /start\//D;
+    /test\//D;
+    /tmp\//D;
+    /->/D;s/^.\s*//')
     if ! menuselect "$CANDIDATES" "Choose the main devel branch"; then
         echo ""
         echo "Initialization aborted"

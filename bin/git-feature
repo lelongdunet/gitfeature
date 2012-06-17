@@ -541,7 +541,7 @@ elif [ "$DO" == 'i' ]; then
     NEWBASE=$(git rev-parse HEAD)
     STARTPOINT=$(start_point $FEATUREBRANCH) || exit 1
 
-    if [[ "$STARTPOINT" == "$DEVREF" && -z "$(git rev-list "^$CHOSENFINAL" "$DEVREF")" ]]; then
+    if [[ "$(git rev-parse $STARTPOINT)" == "$(git rev-parse HEAD)" && -z "$(git rev-list "^$CHOSENFINAL" "$DEVREF")" ]]; then
         git rebase $CHOSENFINAL
         git tag '@'$FEATURE"_$(date '+%s')"
     else

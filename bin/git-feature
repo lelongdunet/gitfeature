@@ -107,6 +107,8 @@ OPTIONS:
    -r      Review commits of the branch ( git rebase -i )
    -t      Dummy option for test purpose.
    -u      Update the specified feature using rebase (Same as -a update )
+   -v      View local features in gitk. Or if a remote name is specified, view
+                all features of this repository
 
 ALIAS:
 The following alias can be used:
@@ -337,6 +339,17 @@ function branch_list()
     git branch $@ | sed 's/^.\s*//'
 }
 
+function check_included()
+{
+    featbranch=$1
+    featname=$(basename $featbranch)
+    git rev-list $DEVREF ^$featbranch^ --simplify-by-decoration --pretty='format:%d' \
+        |egrep '@'$featname'_[0-9]{1,}\b' &> /dev/null \
+        && return 0
+
+    return 1
+}
+
 function check_final()
 {
     featname=$(basename $1)
@@ -351,6 +364,24 @@ function check_final()
     fi
 
     echo "$finallist"
+}
+
+function check_local()
+{
+    featname=$(basename $1)
+    finalname=$FINALNAMESPACE/$featname
+    draftname=$DRAFTNAMESPACE/$featname
+    R=1
+    if git rev-parse $finalname &> /dev/null; then
+        echo $finalname
+        R=0
+    fi
+    if git rev-parse $draftname &> /dev/null; then
+        echo $draftname
+        R=0
+    fi
+
+    return $R
 }
 
 function get_feat_ref()
@@ -377,6 +408,27 @@ function list_locals()
             FEATLIST="$FEATLIST$(branch_list -r --contains $DEVREF --list '*/'$feat) "
         else
             FEATLIST="$FEATLIST$finalfeat "
+        fi
+    done
+
+    echo $FEATLIST
+}
+
+function list_remotes()
+{
+    REMOTENAME="$1"
+    REMOTEFEAT=$(branch_list -r --list $1'/draft/*')
+    REMOTEFEAT="$REMOTEFEAT $(branch_list --list $1'/final/*')"
+    FEATLIST=''
+    for feat in $REMOTEFEAT; do
+        if ! check_included $feat; then
+            finalfeat=$(check_final $feat)
+            if [ -z "$finalfeat" ]; then
+                FEATLIST="$FEATLIST$feat "
+                FEATLIST="$FEATLIST$(check_local $feat) "
+            else
+                FEATLIST="$FEATLIST$finalfeat "
+            fi
         fi
     done
 
@@ -585,6 +637,9 @@ elif [ "$DO" == 'v' ]; then
     BRANCHLIST=$(list_locals)
     if [ "$ARG" == all ]; then
         BRANCHLIST="$BRANCHLIST $(list_updated_remote)"
+    elif [ -n "$ARG" ]; then
+        REMOTENAME="$ARG"
+        BRANCHLIST="$(list_remotes $REMOTENAME) $DEVREF"
     fi
 
     echo $BRANCHLIST

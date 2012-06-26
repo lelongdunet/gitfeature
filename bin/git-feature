@@ -373,14 +373,14 @@ function list_locals()
     for feat in $LOCALFEAT; do
         finalfeat=$(check_final $feat)
         if [ -z "$finalfeat" ]; then
-           FEATLIST="$FEATLIST$feat "
-           FEATLIST="$FEATLIST$(branch_list -r --contains $DEVREF --list '*/'$feat) "
-       else
-           FEATLIST="$FEATLIST$finalfeat "
-       fi
-   done
+            FEATLIST="$FEATLIST$feat "
+            FEATLIST="$FEATLIST$(branch_list -r --contains $DEVREF --list '*/'$feat) "
+        else
+            FEATLIST="$FEATLIST$finalfeat "
+        fi
+    done
 
-   echo $FEATLIST
+    echo $FEATLIST
 }
 
 function list_updated_remote()
@@ -506,7 +506,7 @@ elif [ "$DO" == 'i' ]; then
         echo "Integration succesfull"
         exit
     fi
-   #Check if repo is clean
+    #Check if repo is clean
     if ! git diff --quiet HEAD; then
         echo "Your repository must be clean"
         echo "Please commit all changes before running it!"

@@ -402,12 +402,14 @@ function list_locals()
     LOCALFEAT="$LOCALFEAT $(branch_list --list 'final/*')"
     FEATLIST=''
     for feat in $LOCALFEAT; do
-        finalfeat=$(check_final $feat)
-        if [ -z "$finalfeat" ]; then
-            FEATLIST="$FEATLIST$feat "
-            FEATLIST="$FEATLIST$(branch_list -r --contains $DEVREF --list '*/'$feat) "
-        else
-            FEATLIST="$FEATLIST$finalfeat "
+        if ! check_included $feat; then
+            finalfeat=$(check_final $feat)
+            if [ -z "$finalfeat" ]; then
+                FEATLIST="$FEATLIST$feat "
+                FEATLIST="$FEATLIST$(branch_list -r --contains $DEVREF --list '*/'$feat) "
+            else
+                FEATLIST="$FEATLIST$finalfeat "
+            fi
         fi
     done
 

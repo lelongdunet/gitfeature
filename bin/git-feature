@@ -6,10 +6,49 @@ HOOKRELPATH=../hooks
 VER="v0.1"
 
 
-
 if ! GITDIR=$(git rev-parse --git-dir); then
     exit 1
 fi
+
+################################################################################
+#   Manage colors (see http://wiki.bash-hackers.org/scripting/terminalcodes )
+################################################################################
+
+GREEN="\\033[1;32m"
+NORMAL="\\033[0;39m"
+RED="\\033[1;31m"
+PINK="\\033[1;35m"
+BLUE="\\033[1;34m"
+WHITE="\\033[0;02m"
+LIGHT="\\033[1;08m"
+YELLOW="\\033[1;33m"
+CYAN="\\033[1;36m"
+UNDERLINE="\\033[04;39m"
+INVERTED="\\033[07;39m"
+BLINK="\\033[05;39m"
+BOLD="\\033[01;39m"
+
+
+ERRCOL="$NORMAL$RED"
+WARNCOL="\\033[0;37;44;1m"
+IMPORTANT="$NORMAL$UNDERLINE$GREEN"
+TITLE="$NORMAL$UNDERLINE$BOLD"
+
+echoerr()
+{
+    echo -e "$ERRCOL$1$NORMAL"
+}
+
+echowarn()
+{
+    echo -e "$WARNCOL$1$NORMAL"
+}
+
+echoimportant()
+{
+    echo -e "$IMPORTANT$1$NORMAL"
+}
+
 
 menuselect()
 {
@@ -213,7 +252,7 @@ done
 shift $((OPTIND-1))
 if [ "$EXPECTED" == none ]; then
     if [ $# -gt 0 ]; then
-        echo "No args expected! "
+        echoerr "No args expected! "
         exit 1
     fi
 elif [ -n "$EXPECTED" ]; then
@@ -230,7 +269,7 @@ fi
 if [ -n "$FEATUREBRANCH" ]; then
     FEATURE=$(basename $FEATUREBRANCH)
 elif [[ -z "$EXPECTED" ]]; then
-    echo "No feature name or branch provided!"
+    echoerr "No feature name or branch provided!"
     exit 1
 fi
 
@@ -240,13 +279,13 @@ fi
 
 INST_VER=$(git config workflow.feature)
 if [[ ! "$INST_VER" == "$VER" ]]; then
-    echo "Feature is not installed or needs to be updated"
+    echoerr "Feature is not installed or needs to be updated"
     echo "Run $0 -a init"
     exit -1
 fi
 
 if ! DEVREF=$(git config workflow.devref); then
-    echo "The git config workflow.devref parameter must be define"
+    echoerr "The git config workflow.devref parameter must be define"
     exit 6
 fi
 
@@ -269,14 +308,14 @@ if [ ! "$FEATURE" == "$FEATUREBRANCH" ]; then
     FEATUREREMOTE=$(dirname $FEATUREDIR)
 
     if [[ ! ( "$FEATURENAMESPACE" == "$DRAFTNAMESPACE" || "$FEATURENAMESPACE" == "$FINALNAMESPACE" ) ]]; then
-        echo "Invalid domain $FEATURENAMESPACE.\
+        echoerr "Invalid domain $FEATURENAMESPACE.\
             You must provide a $FEATUREDRAFT or a $FEATUREFINAL feature branch."
         exit 20
     fi
 else
     if [[ $# == 0 && -z "$EXPECTED" ]]; then
-        echo "You are not in a feature branch"
-        echo "Either checkout the branch or provide the feature name in command line"
+        echoerr "You are not in a feature branch"
+        echoerr "Either checkout the branch or provide the feature name in command line"
         exit 1
     fi
 
@@ -296,7 +335,7 @@ function start_point()
         if [ -z "$DEPEND" ]; then
             START=$DEVREF
         else
-            echo "Features are detected between $DEVREF and $WORKINGBRANCH but there is no 'start'" >&2
+            echoerr "Features are detected between $DEVREF and $WORKINGBRANCH but there is no 'start'" >&2
             echo 'marker *'"$FEATURESTART. Detected features are :" >&2
             echo -e "$DEPEND" >&2
             echo '------------------------------------------------------------' >&2
@@ -312,7 +351,7 @@ function start_point()
             START=$FEATURESTART
         else
             #A remote start point must be chosen
-            echo "Several remote start points are found :" >&2
+            echoerr "Several remote start points are found :" >&2
             echo -e "$STARTLIST" >&2
             echo '------------------------------------------------------------' >&2
             echo "Are you sure this is normal. If you are sure tell me wich I have to use by creating a local one" >&2
@@ -516,7 +555,7 @@ if [ "$DO" == 'd' ]; then
         NEWREF=$ARG
         #Check if new reference contains old reference
         if [ -n "$(git rev-list $DEVREF ^$NEWREF)" ]; then
-            echo "The new devel reference must contain $DEVREF"
+            echoerr "The new devel reference must contain $DEVREF"
             exit 1
         fi
     else
@@ -526,19 +565,19 @@ if [ "$DO" == 'd' ]; then
     fi
 
     echo ""
-    echo "New devel reference is $NEWREF"
+    echoimportant "New devel reference is $NEWREF"
     git config workflow.devref $NEWREF
     exit
 
 #Close the feature
 elif [ "$DO" == 'C' ]; then
     if [ -z "$EXISTFINAL" ]; then
-        echo "The feature is not even finalized. Nothing to do!"
+        echo -e $ERRCOL"The feature is not even finalized. "$NORMAL"Nothing to do!"
         exit 1
     fi
 
     if [ -z "$(git tag --list '@'$FEATURE'_*')" ]; then
-        echo "Integration tag not found. The feature cannot be closed"
+        echoerr "Integration tag not found. The feature cannot be closed"
         exit 1
     fi
 
@@ -551,7 +590,7 @@ elif [ "$DO" == 'C' ]; then
 elif [ "$DO" == 'i' ]; then
     FEATREBASEDIR=$GITDIR/feat_rebase
     if [ -f "$FEATREBASEDIR/integration" ]; then
-        echo "JUST CLEAN THE PREVIOUS INTEGRATION"
+        echoimportant "JUST CLEAN THE PREVIOUS INTEGRATION"
         FEATURE="$(<"$FEATREBASEDIR/integration")"
         POSTCHECKOUT="$(<"$FEATREBASEDIR/postcheckout")"
         test -n "$POSTCHECKOUT" && git checkout "$POSTCHECKOUT" &&
@@ -562,13 +601,13 @@ elif [ "$DO" == 'i' ]; then
     fi
     #Check if repo is clean
     if ! git diff --quiet HEAD; then
-        echo "Your repository must be clean"
+        echoerr "Your repository must be clean"
         echo "Please commit all changes before running it!"
         exit 2
     fi
 
     if ! CURRENT=$(git symbolic-ref HEAD 2> /dev/null); then
-        echo "You must be in a valid local branch for include operation!"
+        echoerr "You must be in a valid local branch for include operation!"
         exit 1
     fi
     CURRENTBRANCH=${CURRENT##refs/heads/}
@@ -653,19 +692,19 @@ elif [ "$DO" == 'v' ]; then
 #Finalize feature
 elif [ "$DO" == 'f' ]; then
     if [ -z "$EXISTDRAFT" ]; then
-        echo "No draft branch found for feature $FEATURE found!"
+        echoerr "No draft branch found for feature $FEATURE found!"
         exit 4
     fi
 
     if [ -n "$EXISTFINAL" ]; then
-        echo "$FEATURE is already being finalized by you or someone else." ' *'/$FEATUREFINAL branches are detected.
+        echoerr "$FEATURE is already being finalized by you or someone else." ' *'/$FEATUREFINAL branches are detected.
         echo -e "$EXISTFINAL"
         exit 5
     fi
 
     #Check if repo is clean
     if ! git diff --quiet HEAD; then
-        echo "The repository needs to be clean for this operation."
+        echoerr "The repository needs to be clean for this operation."
         echo "Please clean uncommited changes and try again."
         exit 6
     fi
@@ -685,14 +724,14 @@ elif [ "$DO" == 'f' ]; then
 elif [ "$DO" == 'm' ]; then
     if [ -n "$EXISTFINAL" ]; then
         if ! git rev-parse $FEATUREFINAL &> /dev/null; then
-            echo "$FEATURE is already being finalized by you or someone else." ' *'/$FEATUREFINAL branches are detected.
+            echoerr "$FEATURE is already being finalized by you or someone else." ' *'/$FEATUREFINAL branches are detected.
             echo -e "$EXISTFINAL"
             echo "You should not move a feature being finalizd"
             exit 5
         fi
         FEATUREBRANCH=$FEATUREFINAL
     elif ! git rev-parse $FEATUREDRAFT &> /dev/null; then
-        echo "No local branch $FEATUREDRAFT to move"
+        echoerr "No local branch $FEATUREDRAFT to move"
         exit 10
     else
         FEATUREBRANCH=$FEATUREDRAFT
@@ -700,7 +739,7 @@ elif [ "$DO" == 'm' ]; then
 
     #Check if repo is clean
     if ! git diff --quiet HEAD; then
-        echo "The repository needs to be clean for this operation."
+        echoerr "The repository needs to be clean for this operation."
         echo "Please clean uncommited changes and try again."
         exit 6
     fi
@@ -721,14 +760,14 @@ elif [ "$DO" == 'm' ]; then
 elif [ "$DO" == 'r' ]; then
     if [ -n "$EXISTFINAL" ]; then
         if ! git rev-parse $FEATUREFINAL &> /dev/null; then
-            echo "$FEATURE is already being finalized by you or someone else." ' *'/$FEATUREFINAL branches are detected.
+            echoerr "$FEATURE is already being finalized by you or someone else." ' *'/$FEATUREFINAL branches are detected.
             echo -e "$EXISTFINAL"
             echo "You should not move a feature being finalizd"
             exit 5
         fi
         FEATUREBRANCH=$FEATUREFINAL
     elif ! git rev-parse $FEATUREDRAFT &> /dev/null; then
-        echo "No local branch $FEATUREDRAFT to move"
+        echoerr "No local branch $FEATUREDRAFT to move"
         exit 10
     else
         FEATUREBRANCH=$FEATUREDRAFT
@@ -736,7 +775,7 @@ elif [ "$DO" == 'r' ]; then
 
     #Check if repo is clean
     if ! git diff --quiet HEAD; then
-        echo "The repository needs to be clean for this operation."
+        echoerr "The repository needs to be clean for this operation."
         echo "Please clean uncommited changes and try again."
         exit 6
     fi
@@ -751,14 +790,14 @@ elif [ "$DO" == 'u' ]; then
     if [ -n "$EXISTFINAL" ]; then
         #Check if the branch is local
         if ! git rev-parse $FEATUREFINAL &> /dev/null; then
-            echo "This operation can only be done on local final branch"
+            echoerr "This operation can only be done on local final branch"
             exit 10
         fi
         FEATUREBRANCH=$FEATUREFINAL
     else
         #Check if the branch is local
         if ! git rev-parse $FEATUREDRAFT &> /dev/null; then
-            echo "This operation can only be done on local draft branch"
+            echoerr "This operation can only be done on local draft branch"
             exit 10
         fi
         FEATUREBRANCH=$FEATUREDRAFT
@@ -766,7 +805,7 @@ elif [ "$DO" == 'u' ]; then
 
     #Check if repo is clean
     if ! git diff --quiet HEAD; then
-        echo "The repository needs to be clean for this operation."
+        echoerr "The repository needs to be clean for this operation."
         echo "Please clean uncommited changes and try again."
         exit 6
     fi
@@ -782,7 +821,7 @@ elif [ "$DO" == 'u' ]; then
         echo git rebase --onto "$FEATUREBASE" "$STARTPOINT" "$FEATUREDRAFT"
         git rebase --onto "$FEATUREBASE" "$STARTPOINT" "$FEATUREDRAFT"
     else
-        echo "Previous feature $FEATUREBASE is not updated"
+        echoerr "Previous feature $FEATUREBASE is not updated"
         echo "Rebase everything on devel"
         export BRANCHREPORT=$STARTPOINT
         git rebase $DEVREF $FEATUREDRAFT
@@ -792,7 +831,7 @@ elif [ "$DO" == 'u' ]; then
 elif [ "$DO" == 'e' ]; then
     # ====== Not used now =======
     if [ -z "$EXISTING" ]; then
-        echo "No feature $FEATURE found!"
+        echoerr "No feature $FEATURE found!"
         exit 4
     fi
 
@@ -816,13 +855,13 @@ elif [ "$DO" == 't' ]; then
     echo FEATURENAMESPACE : $FEATURENAMESPACE
     echo FEATUREREMOTE : $FEATUREREMOTE
 
-    echo 'start > ' $(start_point $FEATUREBRANCH)
-    echo "Do nothing ..."
+    echoimportant 'start > '$(start_point $FEATUREBRANCH)
+    echowarn "Do nothing ..."
     exit
 
 else
     if [ -n "$EXISTING" ]; then
-        echo "The name $FEATURE has been found in existing branches"
+        echoerr "The name $FEATURE has been found in existing branches"
         echo "Choose another name for your new feature"
         exit 5
     fi
@@ -834,13 +873,13 @@ fi
 
 DISTANCE=$(git rev-list --count $DEVREF ^$FOLLOW)
 if [ ! "$DISTANCE" == 0 ]; then
-    echo "Your base must contain the main devel branch : $DEVREF"
+    echoerr "Your base must contain the main devel branch : $DEVREF"
     echo "Ensure your base is correct and / or rebase it if needed before creating your new feature"
     exit 7
 fi
 
 if [ ! "$(git rev-parse $FOLLOW)" == "$DEVREFHASH" ]; then
-    echo "Provide distant start point"
+    echoerr "Provide distant start point"
     git branch $FEATURESTART $FOLLOW
 fi
 git branch -t $FEATUREDRAFT $FOLLOW
@@ -850,7 +889,7 @@ echo "You can now implement your new feature in branch $FEATUREDRAFT"
 
 #Check if repo is clean
 if ! git diff --quiet HEAD; then
-    echo "It can't be checked out now because your repository is not clean now"
+    echowarn "It can't be checked out now because your repository is not clean now"
     echo "you can get it by > git checkout $FEATUREDRAFT"
     echo "but you should FIRST CLEAN YOUR REPOSITORY"
 else

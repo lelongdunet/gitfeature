@@ -33,6 +33,7 @@ ERRCOL="$NORMAL$RED"
 WARNCOL="\\033[0;37;44;1m"
 IMPORTANT="$NORMAL$UNDERLINE$GREEN"
 TITLE="$NORMAL$UNDERLINE$BOLD"
+HIGHLIGHT="$NORMAL$BOLD$GREEN"
 
 echoerr()
 {
@@ -114,6 +115,7 @@ initialize()
     git config alias.featintegrate "feature -i"
     git config alias.featview "feature -v"
     git config alias.featviewall "feature -a view all"
+    git config alias.featlist "feature -l"
 }
 
 usage()
@@ -140,6 +142,7 @@ OPTIONS:
    -f      Finalize the feature.
    -h      Display this help.
    -i      Include feature in current branch
+   -l      List all features
    -m      Move the feature upon a new base
    -p      Push the given feature
    -P      Push all local features
@@ -161,6 +164,7 @@ The following alias can be used:
     > featintegrate		"feature -i"
     > featview			"feature -v"
     > featviewall		"feature -a view all"
+    > featlist			"feature -l"
 
 EOF
 }
@@ -171,7 +175,7 @@ EOF
 
 DO='n' # Default action is new feature
 
-while getopts "rfm:tb:a:hucvpiP" OPTION; do
+while getopts "rfm:tb:a:hucvpliP" OPTION; do
     case $OPTION in
         a)
             case $OPTARG in
@@ -231,6 +235,10 @@ while getopts "rfm:tb:a:hucvpiP" OPTION; do
             ;;
         i)
             DO='i'
+            ;;
+        l)
+            DO='l'
+            EXPECTED=none
             ;;
         v)
             DO='v'
@@ -688,6 +696,51 @@ elif [ "$DO" == 'v' ]; then
     gitk $BRANCHLIST
 
     exit
+
+#List features
+elif [ "$DO" == "l" ]; then
+    FEATLIST=$(branch_list --list 'draft/*')
+
+    CURRENT=''
+    REMOTES=''
+    INCLUDED=''
+
+    for feat in $FEATLIST; do
+        finalfeat=$(check_final $feat)
+        if [ -z "$finalfeat" ]; then
+            if ! check_included $feat; then
+                CURRENT="$CURRENT$feat "
+            else
+                INCLUDED="$INCLUDED$feat "
+            fi
+        fi
+    done
+
+    FEATLIST="$(branch_list --list 'final/*')"
+    CURRENT=$CURRENT$HIGHLIGHT
+    for feat in $FEATLIST; do
+        if ! check_included $feat; then
+            CURRENT="$CURRENT$feat "
+        else
+            INCLUDED="$INCLUDED$feat "
+        fi
+    done
+    CURRENT=$CURRENT$NORMAL
+
+    echo "List local features"
+    echo ""
+    echo -e $TITLE"Included features"$NORMAL
+    for feat in $INCLUDED; do
+        echo -e "    $ERRCOL$feat$NORMAL"
+    done
+    echo ""
+    echo -e $TITLE"Current features"$NORMAL
+    for feat in $CURRENT; do
+        echo -e "    $feat"
+    done
+    echo ""
+
+    exit 
 
 #Finalize feature
 elif [ "$DO" == 'f' ]; then

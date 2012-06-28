@@ -3,7 +3,7 @@
 
 TMPFILE=/tmp/featuretmp
 HOOKRELPATH=../hooks
-VER="v0.1"
+VER="v0.1.01"
 
 
 if ! GITDIR=$(git rev-parse --git-dir); then
@@ -64,36 +64,43 @@ menuselect()
 initialize()
 {
     if INST_VER=$(git config workflow.feature); then
-        echo "Feature management already initialized"
-        return
+        if [ "$INST_VER" == "$VER" ]; then
+            echo "Feature management already initialized"
+            return
+        else
+            echo "Update git feature from $INST_VER to $VER"
+            UPDATE=1
+        fi
     fi
 
-    git config workflow.fetchinter 24
+    if [ ! "$UPDATE" == 1 ]; then
+        git config workflow.fetchinter 24
 
-    CANDIDATES=$(git branch -a | \
-        sed '/(.*)/D;/final\//D;
-    /draft\//D;
-    /start\//D;
-    /test\//D;
-    /tmp\//D;
-    /->/D;s/^.\s*//')
-    if ! menuselect "$CANDIDATES" "Choose the main devel branch"; then
-        echo ""
-        echo "Initialization aborted"
-        exit
+        CANDIDATES=$(git branch -a | \
+            sed '/(.*)/D;/final\//D;
+        /draft\//D;
+        /start\//D;
+        /test\//D;
+        /tmp\//D;
+        /->/D;s/^.\s*//')
+        if ! menuselect "$CANDIDATES" "Choose the main devel branch"; then
+            echo ""
+            echo "Initialization aborted"
+            exit
+        fi
+        DEVREF=$(<"$TMPFILE")
+
+
+        if ! menuselect "$(git remote)" "Choose your public repo where you will push"; then
+            echo ""
+            echo "Initialization aborted"
+            exit
+        fi
+
+        REMOTE=$(<"$TMPFILE")
+        git config workflow.devref "$DEVREF"
+        git config workflow.remote "$REMOTE"
     fi
-    DEVREF=$(<"$TMPFILE")
-
-    
-    if ! menuselect "$(git remote)" "Choose your public repo where you will push"; then
-        echo ""
-        echo "Initialization aborted"
-        exit
-    fi
-
-    REMOTE=$(<"$TMPFILE")
-    git config workflow.devref "$DEVREF"
-    git config workflow.remote "$REMOTE"
 
     #Install hook
     HOOKPATH="$(dirname "$(readlink -f "$0")")/$HOOKRELPATH"
@@ -121,10 +128,10 @@ initialize()
 usage()
 {
 cat << EOF
-usage: $0 options
+usage: git feature options
 
 This script create new and manage feature branches :
-$0 [options] featurename
+git feature [options] featurename
 
 Default action is creating a new branch, other are provided through options
 OPTIONS:
@@ -288,7 +295,7 @@ fi
 INST_VER=$(git config workflow.feature)
 if [[ ! "$INST_VER" == "$VER" ]]; then
     echoerr "Feature is not installed or needs to be updated"
-    echo "Run $0 -a init"
+    echo "Run git feature -a init"
     exit -1
 fi
 

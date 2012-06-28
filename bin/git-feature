@@ -368,7 +368,7 @@ function get_feat_ref()
 function list_locals()
 {
     LOCALFEAT=$(branch_list --list 'draft/*')
-    LOCALFEAT=$LOCALFEAT$(branch_list --list 'final/*')
+    LOCALFEAT="$LOCALFEAT $(branch_list --list 'final/*')"
     FEATLIST=''
     for feat in $LOCALFEAT; do
         finalfeat=$(check_final $feat)

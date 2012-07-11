@@ -474,7 +474,7 @@ function list_remotes()
 {
     REMOTENAME="$1"
     REMOTEFEAT=$(branch_list -r --list $1'/draft/*')
-    REMOTEFEAT="$REMOTEFEAT $(branch_list --list $1'/final/*')"
+    REMOTEFEAT="$REMOTEFEAT $(branch_list -r --list $1'/final/*')"
     FEATLIST=''
     for feat in $REMOTEFEAT; do
         if ! check_included $feat; then

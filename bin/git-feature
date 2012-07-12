@@ -695,9 +695,10 @@ elif [ "$DO" == 'v' ]; then
         BRANCHLIST="$BRANCHLIST $(list_updated_remote)"
     elif [ -n "$ARG" ]; then
         REMOTENAME="$ARG"
-        BRANCHLIST="$(list_remotes $REMOTENAME) $DEVREF"
+        BRANCHLIST="$(list_remotes $REMOTENAME)"
     fi
 
+    BRANCHLIST="$BRANCHLIST $DEVREF"
     echo $BRANCHLIST
     echo "---------------------------------------"
     gitk $BRANCHLIST

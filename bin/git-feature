@@ -789,6 +789,8 @@ elif [ "$DO" == 'f' ]; then
     if [ $(git rev-list --count $STARTPOINT ^$DEVREF) == 0 ]; then
         git rebase -i $DEVREF $FEATUREFINAL
     else
+        #Unsure there is a local start point
+        git branch -f $FEATURESTART $STARTPOINT
         git rebase -i $STARTPOINT $FEATUREFINAL
     fi
 
@@ -796,9 +798,10 @@ elif [ "$DO" == 'f' ]; then
 elif [ "$DO" == 'm' ]; then
     if [ -n "$EXISTFINAL" ]; then
         if ! git rev-parse $FEATUREFINAL &> /dev/null; then
-            echoerr "$FEATURE is already being finalized by you or someone else." ' *'/$FEATUREFINAL branches are detected.
+            echoerr "$FEATURE is already being finalized by someone else." ' *'/$FEATUREFINAL branches are detected.
             echo -e "$EXISTFINAL"
-            echo "You should not move a feature being finalizd"
+            echo 'But there is no local final branch.'
+            echo "You cannot move a remote final branch"
             exit 5
         fi
         FEATUREBRANCH=$FEATUREFINAL

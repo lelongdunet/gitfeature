@@ -87,10 +87,10 @@ if [[ "$CURRENTNAMESPACE" == "$DRAFTNAMESPACE" || "$CURRENTNAMESPACE" == "$FINAL
             echo $STARTNAMESPACE/$CURRENTFEAT > "$FEATREBASEDIR/start"
         fi
 
-        if [ -n "$NEWSTARTPOINT" ]; then
-            echo $STARTNAMESPACE/$CURRENTFEAT > "$FEATREBASEDIR/start"
-            echo $NEWSTARTPOINT > "$FEATREBASEDIR/newstart"
-        fi
+    fi
+    if [ -n "$NEWSTARTPOINT" ]; then
+        echo $STARTNAMESPACE/$CURRENTFEAT > "$FEATREBASEDIR/start"
+        echo $NEWSTARTPOINT > "$FEATREBASEDIR/newstart"
     fi
 fi
 

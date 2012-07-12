@@ -35,9 +35,17 @@ if [[ "$1" == rebase ]]; then
             FIRST=$(echo -e "$COMMITLIST"|sed '1!D;s/^.*\s\(\w*\)$/\1/')
             NEWSTART="$FIRST^"
         fi
-        git branch -f "$STARTNAME" "$NEWSTART"
-        echo "$STARTNAME moved"
-        echo "$OLDSTART  -->  $(git rev-parse $NEWSTART)"
+        #Check if new start point is in DEVREF
+        DISTANCE=$(git rev-list --count $NEWSTART ^$DEVREF)
+        if [ "$DISTANCE" == 0 ]; then
+            if git branch -D "$STARTNAME" &> /dev/null; then
+                echo "$STARTNAME not needed any more"
+            fi
+        else
+            git branch -f "$STARTNAME" "$NEWSTART"
+            echo "$STARTNAME moved"
+            echo "$OLDSTART  -->  $(git rev-parse $NEWSTART)"
+        fi
     fi
 fi
 

@@ -245,7 +245,7 @@ while getopts "rfm:tb:a:hucvpliP" OPTION; do
             ;;
         l)
             DO='l'
-            EXPECTED=none
+            EXPECTED=1
             ;;
         v)
             DO='v'
@@ -721,12 +721,20 @@ elif [ "$DO" == 'v' ]; then
     exit
 
 #List features
-elif [ "$DO" == "l" ]; then
-    FEATLIST=$(branch_list --list 'draft/*')
+elif [ "$DO" == 'l' ]; then
+    #If ARG is not empty it is the remote name
+    if [ -z "$ARG" ]; then
+        FEATLIST=$(branch_list --list 'draft/*')
+        FEATPREFIX=''
+    else
+        FEATLIST=$(branch_list -r --list $ARG'/draft/*')
+        FEATPREFIX=$ARG/
+    fi
 
     CURRENT=''
     REMOTES=''
     INCLUDED=''
+    FINALS=''
 
     for feat in $FEATLIST; do
         finalfeat=$(check_final $feat)
@@ -736,11 +744,23 @@ elif [ "$DO" == "l" ]; then
             else
                 INCLUDED="$INCLUDED$feat "
             fi
+        elif ! git rev-parse $FEATPREFIX'final/'$feat &> /dev/null; then
+            if ! check_included $feat; then
+                FINALS="$FINALS$finalfeat "
+            else
+                INCLUDED="$INCLUDED$feat "
+            fi
         fi
     done
 
-    FEATLIST="$(branch_list --list 'final/*')"
+    if [ -z "$ARG" ]; then
+        FEATLIST=$(branch_list --list 'final/*')
+    else
+        FEATLIST=$(branch_list -r --list $ARG'/final/*')
+    fi
+
     CURRENT=$CURRENT$HIGHLIGHT
+    CURRENT="$CURRENT$FINALS "
     for feat in $FEATLIST; do
         if ! check_included $feat; then
             CURRENT="$CURRENT$feat "

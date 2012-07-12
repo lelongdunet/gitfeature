@@ -454,10 +454,14 @@ function get_feat_ref()
     FEATREMOTE=$(git config branch."$FEATUREDRAFT".remote)
     FEATREBASE=$(git config branch."$FEATUREDRAFT".merge \
         | sed 's#refs/\w*/##')
-    if [ "$FEATREMOTE" == '.' ]; then
-        echo "$FEATREBASE"
+    if [ -n "$FEATREBASE" ]; then
+        if [ "$FEATREMOTE" == '.' ]; then
+            echo "$FEATREBASE"
+        else
+            echo "$FEATREMOTE/$FEATREBASE"
+        fi
     else
-        echo "$FEATREMOTE/$FEATREBASE"
+        echo "$DEVREF"
     fi
 }
 
@@ -886,20 +890,20 @@ elif [ "$DO" == 'u' ]; then
     fi
 
 
-    STARTPOINT=$(start_point "$FEATUREDRAFT") || exit 1
+    STARTPOINT=$(start_point "$FEATUREBRANCH") || exit 1
     FEATUREBASE=$(get_feat_ref)
     #TODO Check for other refs between start point and branch end.
-    if [ "$(git rev-parse $FEATUREDRAFT)" == "$DEVREFHASH" ]; then
+    if [ "$(git rev-parse $STARTPOINT)" == "$DEVREFHASH" ]; then
         git checkout "$FEATUREBRANCH"
-        git rebase
-    elif [ -z "$(git rev-list $FEATUREBASE ^$DEVREF)" ]; then
-        echo git rebase --onto "$FEATUREBASE" "$STARTPOINT" "$FEATUREDRAFT"
-        git rebase --onto "$FEATUREBASE" "$STARTPOINT" "$FEATUREDRAFT"
+        git rebase $DEVREF
+    elif [ -z "$(git rev-list ^$FEATUREBASE $DEVREF)" ]; then
+        echo git rebase --onto "$FEATUREBASE" "$STARTPOINT" "$FEATUREBRANCH"
+        git rebase --onto "$FEATUREBASE" "$STARTPOINT" "$FEATUREBRANCH"
     else
         echoerr "Previous feature $FEATUREBASE is not updated"
         echo "Rebase everything on devel"
         export BRANCHREPORT=$STARTPOINT
-        git rebase $DEVREF $FEATUREDRAFT
+        git rebase $DEVREF $FEATUREBRANCH
     fi
     exit
 

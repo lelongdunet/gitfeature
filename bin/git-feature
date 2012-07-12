@@ -345,6 +345,17 @@ function start_point()
 {
     WORKINGBRANCH=$1
     STARTLIST=$(git show-ref $FEATURESTART)
+
+    #Keep only start points that are in the branch
+    SELECTSTART=''
+    for s in $STARTLIST; do
+        DISTANCE=$(git rev-list --count $s ^$WORKINGBRANCH)
+        if [ "$DISTANCE" == 0 ]; then
+            SELECTSTART="$SELECTSTART$s "
+        fi
+    done
+    STARTLIST=$SELECTSTART
+
     if [ -z "$STARTLIST" ]; then
         DEPEND="$(list_feat_depend $WORKINGBRANCH)"
         if [ -z "$DEPEND" ]; then

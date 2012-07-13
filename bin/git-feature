@@ -3,7 +3,7 @@
 
 TMPFILE=/tmp/featuretmp
 HOOKRELPATH=../hooks
-VER="v0.1.02"
+VER="v0.1.03"
 
 
 if ! GITDIR=$(git rev-parse --git-dir); then

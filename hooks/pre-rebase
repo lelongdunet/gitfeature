@@ -92,5 +92,8 @@ if [[ "$CURRENTNAMESPACE" == "$DRAFTNAMESPACE" || "$CURRENTNAMESPACE" == "$FINAL
         echo $STARTNAMESPACE/$CURRENTFEAT > "$FEATREBASEDIR/start"
         echo $NEWSTARTPOINT > "$FEATREBASEDIR/newstart"
     fi
+
+    #Record the first commit of the branch
+    git rev-list --left-only $CURRENT...$basebranch |sed '$!D' > $FEATREBASEDIR/hashbase
 fi
 

@@ -879,7 +879,7 @@ elif [ "$DO" == 'r' ]; then
         exit 6
     fi
 
-    STARTPOINT=$(start_point "$FEATUREDRAFT") || exit 1
+    STARTPOINT=$(start_point "$FEATUREBRANCH") || exit 1
     git checkout $FEATUREBRANCH
     git rebase -i $STARTPOINT
     exit

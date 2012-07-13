@@ -350,7 +350,8 @@ function start_point()
     SELECTSTART=''
     for s in $STARTLIST; do
         DISTANCE=$(git rev-list --count $s ^$WORKINGBRANCH)
-        if [ "$DISTANCE" == 0 ]; then
+        DISTANCEDEVREF=$(git rev-list --count $s ^$DEVREF)
+        if [[ "$DISTANCE" == 0 && "$DISTANCEDEVREF" != 0 ]]; then
             SELECTSTART="$SELECTSTART$s "
         fi
     done

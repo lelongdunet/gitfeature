@@ -100,6 +100,9 @@ initialize()
         REMOTE=$(<"$TMPFILE")
         git config workflow.devref "$DEVREF"
         git config workflow.remote "$REMOTE"
+        if is_local $DEVREF; then
+            git update-ref refs/markers/devref $DEVREF
+        fi
     fi
 
     #Install hook
@@ -156,6 +159,7 @@ OPTIONS:
    -r      Review commits of the branch ( git rebase -i )
    -t      Dummy option for test purpose.
    -u      Update the specified feature using rebase (Same as -a update )
+   -U      Update remote DEVREF and tags (integrator only)
    -v      View local features in gitk. Or if a remote name is specified, view
                 all features of this repository
 
@@ -182,7 +186,7 @@ EOF
 
 DO='n' # Default action is new feature
 
-while getopts "rfm:tb:a:hucvpliP" OPTION; do
+while getopts "rfm:tb:a:hucvpliPU" OPTION; do
     case $OPTION in
         a)
             case $OPTARG in
@@ -256,6 +260,10 @@ while getopts "rfm:tb:a:hucvpliP" OPTION; do
             ;;
         P)
             DO='P'
+            EXPECTED=none
+            ;;
+        U)
+            DO='U'
             EXPECTED=none
             ;;
         h)
@@ -340,6 +348,20 @@ fi
 ################################################################################
 #   Function definitions
 ################################################################################
+
+function list_feattags()
+{
+    START=$1
+    END=$2
+    git rev-list --simplify-by-decoration --pretty='format:%d' $START..$END \
+        |sed '/@[^(),]\+_\w\+/!D;s/^.*\(@[^(),]\+_\w\+\).*$/\1/'
+}
+
+function is_local()
+{
+    git rev-parse refs/heads/$1 &> /dev/null && return 0
+    return 1
+}
 
 function start_point()
 {
@@ -598,6 +620,16 @@ if [ "$DO" == 'd' ]; then
     echo ""
     echoimportant "New devel reference is $NEWREF"
     git config workflow.devref $NEWREF
+    if is_local $NEWREF; then
+        git update-ref refs/markers/devref $NEWREF
+    fi
+    exit
+
+elif [ "$DO" == 'U' ]; then
+    echo "Update remote devel reference : $DEVREF"
+    git push $REMOTE $DEVREF && \
+    git push $REMOTE $(list_feattags refs/markers/devref $DEVREF) && \
+    git update-ref refs/markers/devref $DEVREF
     exit
 
 #Close the feature

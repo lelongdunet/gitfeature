@@ -186,7 +186,7 @@ EOF
 
 DO='n' # Default action is new feature
 
-while getopts "rfm:tb:a:hucvpliPU" OPTION; do
+while getopts "rfm:tb:a:hucvpliPUs" OPTION; do
     case $OPTION in
         a)
             case $OPTARG in
@@ -265,6 +265,9 @@ while getopts "rfm:tb:a:hucvpliPU" OPTION; do
         U)
             DO='U'
             EXPECTED=none
+            ;;
+        s)
+            DO='s'
             ;;
         h)
             usage
@@ -588,6 +591,24 @@ function push_feat()
     fi
 }
 
+function feat_stat()
+{
+    featbranch=$1
+    featname=$(basename $1)
+
+    if check_included $featbranch; then
+        echo ">I : feature already integrated"
+    elif [ -n "$(check_final $featbranch)" ]; then
+        echo ">F : feature being finalized"
+    elif ! git rev-parse draft/$featname &> /dev/null; then
+        echo ">R : remote feature"
+    else
+        echo ">D : draft feature"
+    fi
+
+}
+
+
 #Check the state of features on which we are based
 # function check_feat_depend()
 # {
@@ -634,6 +655,10 @@ elif [ "$DO" == 'U' ]; then
     git push $REMOTE $DEVREF && \
     git push $REMOTE $(list_feattags refs/markers/devref $DEVREF) && \
     git update-ref refs/markers/devref $DEVREF
+    exit
+
+elif [ "$DO" == 's' ]; then
+    feat_stat $FEATUREBRANCH
     exit
 
 #Close the feature

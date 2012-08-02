@@ -613,6 +613,10 @@ if [ "$DO" == 'd' ]; then
         fi
     else
         CANDIDATES=$(git branch --contains $DEVREF | sed 's/^.\s*//')
+        if [ -n "$CANDIDATES" ]; then
+            CANDIDATES=$CANDIDATES"\n"
+        fi
+        CANDIDATES=$CANDIDATES$(git branch -r --contains $DEVREF | sed 's/^.\s*//')
         menuselect "$CANDIDATES" "Choose the main devel branch"
         NEWREF=$(<"$TMPFILE")
     fi

@@ -774,6 +774,13 @@ elif [ "$DO" == 'v' ]; then
         REMOTENAME="$ARG"
         BRANCHLIST="$(list_remotes $REMOTENAME)"
     fi
+    BRANCHSELECT=''
+    for feat in $BRANCHLIST; do
+        if ! check_included $feat; then
+            BRANCHSELECT="$BRANCHSELECT$feat "
+        fi
+    done
+    BRANCHLIST=$BRANCHSELECT
 
     BRANCHLIST="$BRANCHLIST $DEVREF"
     echo $BRANCHLIST

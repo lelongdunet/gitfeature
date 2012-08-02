@@ -745,7 +745,7 @@ elif [ "$DO" == 'l' ]; then
             else
                 INCLUDED="$INCLUDED$feat "
             fi
-        elif ! git rev-parse $FEATPREFIX'final/'$feat &> /dev/null; then
+        elif ! git rev-parse $FEATPREFIX'final/'$(basename $feat) &> /dev/null; then
             if ! check_included $feat; then
                 FINALS="$FINALS$finalfeat "
             else

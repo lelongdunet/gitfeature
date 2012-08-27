@@ -807,7 +807,7 @@ elif [ "$DO" == 'v' ]; then
     if [ "$FULL" == 'y' ]; then
         BRANCHLIST="$BRANCHLIST $DEVREF"
     else
-        BRANCHLIST="$BRANCHLIST $DEVREF ^$DEVREF^^"
+        BRANCHLIST="$BRANCHLIST $DEVREF ^$DEVREF^"
     fi
     echo $BRANCHLIST
     echo "---------------------------------------"

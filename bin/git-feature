@@ -1090,6 +1090,51 @@ elif [ "$DO" == 'T' ]; then
     git config workflow.lastref $testname
     git checkout testing
 
+    LIST="$(feat_list 'b')"
+    SELECTLIST=''
+    for feat in $LIST; do
+        SELECTLIST="$SELECTLIST$(git log -n1 --pretty=format:%ct $feat) $feat $(basename $feat) off"'\n'
+    done
+    SELECTLIST=$(echo -e "$SELECTLIST"|sort -nr|sed 's/^\w*\s*//')
+    if ! multiselect "$SELECTLIST" "Select features you want to merge in test branch"; then
+        SELECTED=''
+    else
+        SELECTED=$(sed 's/"//g;s/\\#/#/g' "$TMPFILE")
+    fi
+
+    if [ -z "$SELECTED" ]; then
+        echo ""
+        echo "No merge selected"
+        exit
+    fi
+
+    echo ""
+    echo "Performing selected merges : "
+    MERGEDFEAT=''
+    NOTMERGEDFEAT=''
+
+    for feat in $SELECTED; do
+        if git merge $feat; then
+            MERGEDFEAT="$MERGEDFEAT$feat "
+        else
+            git reset --hard
+            echo -e "$ERRCOL$feat could not be merged because of a conflict.$NORMAL"
+            NOTMERGEDFEAT="$NOTMERGEDFEAT$feat "
+        fi
+    done
+    echo -e ""
+    echo -e "------------------------------------------------------------"
+    if [ -n "$MERGEDFEAT" ]; then
+        echo -e "$TITLE Following features where successfully merged:$NORMAL"
+        echo -e "  > $MERGEDFEAT"
+    fi
+    echo -e ""
+    if [ -n "$NOTMERGEDFEAT" ]; then
+        echo -e "$TITLE Following features failled:"
+        echo -e "  > $ERRCOL$NOTMERGEDFEAT$NORMAL"
+    fi
+    echo -e "------------------------------------------------------------"
+
     exit
 
 elif [ "$DO" == 'L' ]; then

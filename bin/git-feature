@@ -198,7 +198,7 @@ EOF
 
 DO='n' # Default action is new feature
 
-while getopts "rfm:tb:a:hucvpliPUsT" OPTION; do
+while getopts "AFrfm:tb:a:hucvpliPUsT" OPTION; do
     case $OPTION in
         a)
             case $OPTARG in
@@ -230,6 +230,12 @@ while getopts "rfm:tb:a:hucvpliPUsT" OPTION; do
                     ;;
 
             esac
+            ;;
+        A)
+            ALL='y'
+            ;;
+        F)
+            FULL='y'
             ;;
         c)
             DO='c'
@@ -784,7 +790,7 @@ elif [ "$DO" == 'v' ]; then
     BRANCHLIST=""
     echo "Getting list of branch ..."
     BRANCHLIST=$(list_locals)
-    if [ "$ARG" == all ]; then
+    if [[ "$ALL" == 'y' || "$ARG" == all ]]; then
         BRANCHLIST="$BRANCHLIST $(list_updated_remote)"
     elif [ -n "$ARG" ]; then
         REMOTENAME="$ARG"
@@ -798,7 +804,11 @@ elif [ "$DO" == 'v' ]; then
     done
     BRANCHLIST=$BRANCHSELECT
 
-    BRANCHLIST="$BRANCHLIST $DEVREF"
+    if [ "$FULL" == 'y' ]; then
+        BRANCHLIST="$BRANCHLIST $DEVREF"
+    else
+        BRANCHLIST="$BRANCHLIST $DEVREF ^$DEVREF^^"
+    fi
     echo $BRANCHLIST
     echo "---------------------------------------"
     gitk $BRANCHLIST

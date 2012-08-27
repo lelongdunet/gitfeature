@@ -128,6 +128,17 @@ initialize()
     git config alias.featlist "feature -l"
 }
 
+unicref()
+{
+    count=0
+    name=$1
+    while git rev-parse $name$count &> /dev/null; do
+        count=$((count+1))
+    done
+
+    echo $name$count
+}
+
 usage()
 {
 cat << EOF
@@ -158,6 +169,7 @@ OPTIONS:
    -P      Push all local features
    -r      Review commits of the branch ( git rebase -i )
    -t      Dummy option for test purpose.
+   -T      Make a test branch
    -u      Update the specified feature using rebase (Same as -a update )
    -U      Update remote DEVREF and tags (integrator only)
    -v      View local features in gitk. Or if a remote name is specified, view
@@ -186,7 +198,7 @@ EOF
 
 DO='n' # Default action is new feature
 
-while getopts "rfm:tb:a:hucvpliPUs" OPTION; do
+while getopts "rfm:tb:a:hucvpliPUsT" OPTION; do
     case $OPTION in
         a)
             case $OPTARG in
@@ -268,6 +280,10 @@ while getopts "rfm:tb:a:hucvpliPUs" OPTION; do
             ;;
         s)
             DO='s'
+            ;;
+        T)
+            DO='T'
+            EXPECTED=none
             ;;
         h)
             usage
@@ -713,7 +729,7 @@ elif [ "$DO" == 'i' ]; then
     ABOVEREF=$(branch_list -a --contains $DEVREF --list '*'"$FEATUREFINAL")
     if [ $(echo -e "$EXISTFINAL" | wc -l) == 1 ]; then
         CHOSENFINAL=$(echo -e "$EXISTFINAL" | sed 's#^.*refs/\w*/\(.*\)\s*$#\1#')
-    elif [ -n "$ABOVEREF" && $(echo -e "$ABOVEREF" | wc -l) == 1 ]; then
+    elif [[ -n "$ABOVEREF" && $(echo -e "$ABOVEREF" | wc -l) == 1 ]]; then
         CHOSENFINAL=$ABOVEREF
     else
         if ! menuselect "$EXISTFINAL" "Choose a final reference for the feature $FEATURE"; then
@@ -1004,6 +1020,19 @@ elif [ "$DO" == 'e' ]; then
     fi
 
     dialog --menu "Choose which branch you to be based on" 40 100 15 1 $EXISTING 2> "$TMPFILE"
+
+elif [ "$DO" == 'T' ]; then
+    if lasttest=$(git config workflow.lastref); then
+        git branch $lasttest testing
+        if [ "$(git symbolic-ref HEAD)" == "refs/heads/testing" ]; then
+            git checkout $lasttest
+        fi
+    fi
+    git branch -f testing $DEVREF
+    testname=$(unicref test$(date +%d%m%y).)
+    git config workflow.lastref $testname
+    git checkout testing
+    exit
 
 elif [ "$DO" == 't' ]; then
     echo FEATURE      : $FEATURE

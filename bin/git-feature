@@ -1095,10 +1095,23 @@ elif [ "$DO" == 'T' ]; then
     git config workflow.lastref $testname
     git checkout testing
 
+    if [ -f "$GITDIR/test_merge" ]; then
+        source $GITDIR/test_merge
+    fi
+
     LIST="$(feat_list 'b')"
     SELECTLIST=''
     for feat in $LIST; do
-        SELECTLIST="$SELECTLIST$(git log -n1 --pretty=format:%ct $feat) $feat $(basename $feat) off"'\n'
+        FLAG=''
+        STAT='off'
+        if [[ " $MERGEDFEAT " =~ " $feat " ]]; then
+            STAT=on
+        elif [[ " $NOTMERGEDFEAT " =~ " $feat " ]]; then
+            STAT=on
+            FLAG=':(!!)'
+        fi
+        COMMITDATE=$(git log -n1 --pretty=format:%ct $feat)
+        SELECTLIST="$SELECTLIST$COMMITDATE $feat $(basename $feat)$FLAG $STAT"'\n'
     done
     SELECTLIST=$(echo -e "$SELECTLIST"|sort -nr|sed 's/^\w*\s*//')
     if ! multiselect "$SELECTLIST" "Select features you want to merge in test branch"; then
@@ -1144,6 +1157,9 @@ elif [ "$DO" == 'T' ]; then
         for feat in $NOTMERGEDFEAT; do echo -e "  > $feat"; done
         echo -e "$NORMAL"
     fi
+
+    echo "MERGEDFEAT='$MERGEDFEAT'" > $GITDIR/test_merge
+    echo "NOTMERGEDFEAT='$NOTMERGEDFEAT'" >> $GITDIR/test_merge
     repeatchar 60 '='
 
     exit

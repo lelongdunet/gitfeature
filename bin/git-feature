@@ -1,6 +1,7 @@
 #!/bin/bash
 ##>Git subcommand to manage features
 
+PYPATH="$(dirname "$(readlink -f "$0")")"/../python
 TMPFILE=/tmp/featuretmp
 HOOKRELPATH=../hooks
 VER="v0.1.03"
@@ -207,7 +208,7 @@ EOF
 
 DO='n' # Default action is new feature
 
-while getopts "AFrfm:tb:a:hucvpliPUsT" OPTION; do
+while getopts "AFrfm:tb:a:hucvpliPUsTL" OPTION; do
     case $OPTION in
         a)
             case $OPTARG in
@@ -270,6 +271,10 @@ while getopts "AFrfm:tb:a:hucvpliPUsT" OPTION; do
             ;;
         t)
             DO='t'
+            ;;
+        L)
+            DO='L'
+            EXPECTED=none
             ;;
         i)
             DO='i'
@@ -637,6 +642,39 @@ function feat_stat()
         echo ">D : draft feature"
     fi
 
+}
+
+function feat_list()
+{
+    ALLFEATS="$(branch_list --list 'final/*')"
+    ALLFEATS="$ALLFEATS"'\n'"$(branch_list -r --list '*/final/*')"
+    ALLFEATS="$ALLFEATS"'\n'"$(branch_list --list 'draft/*')"
+    ALLFEATS="$ALLFEATS"'\n'"$(branch_list -r --list '*/draft/*')"
+
+    ALLFEATS="$(echo -e "$ALLFEATS"|python "$PYPATH/filters.py")"
+
+
+    #Separate included / not included features
+    for feat in $ALLFEATS; do
+        if check_included $feat; then
+            FEATINC="$FEATINC$feat"'\n'
+        else
+            FEATCUR="$FEATCUR$(basename $feat)"'\n'
+            FEATCURBRANCH="$FEATCURBRANCH$feat"'\n'
+        fi
+    done
+
+    case "$1" in
+        i)
+            echo -e "$FEATINC"
+            ;;
+        c)
+            echo -e "$FEATCUR"
+            ;;
+        b)
+            echo -e "$FEATCURBRANCH"
+            ;;
+    esac
 }
 
 
@@ -1051,6 +1089,18 @@ elif [ "$DO" == 'T' ]; then
     testname=$(unicref test$(date +%d%m%y).)
     git config workflow.lastref $testname
     git checkout testing
+
+    exit
+
+elif [ "$DO" == 'L' ]; then
+    LIST="$(feat_list 'b')"
+    SELECTLIST=''
+    for feat in $LIST; do
+        SELECTLIST="$SELECTLIST$(git log -n1 --pretty=format:%ct $feat) $feat $(basename $feat) off"'\n'
+    done
+    SELECTLIST=$(echo -e "$SELECTLIST"|sort -nr|sed 's/^\w*\s*//')
+    echo $SELECTLIST
+    #feat_list 'b'
     exit
 
 elif [ "$DO" == 't' ]; then

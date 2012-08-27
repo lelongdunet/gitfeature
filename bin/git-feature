@@ -34,7 +34,7 @@ ERRCOL="$NORMAL$RED"
 WARNCOL="\\033[0;37;44;1m"
 IMPORTANT="$NORMAL$UNDERLINE$GREEN"
 TITLE="$NORMAL$UNDERLINE$BOLD"
-HIGHLIGHT="$NORMAL$BOLD$GREEN"
+HIGHLIGHT="$NORMAL$GREEN$BOLD"
 
 echoerr()
 {
@@ -51,6 +51,11 @@ echoimportant()
     echo -e "$IMPORTANT$1$NORMAL"
 }
 
+repeatchar()
+{
+    A=$(seq $1)
+    echo ${A//??/$2}
+}
 
 menuselect()
 {
@@ -1114,6 +1119,10 @@ elif [ "$DO" == 'T' ]; then
     NOTMERGEDFEAT=''
 
     for feat in $SELECTED; do
+        echo ""
+        repeatchar 60 '#'
+        echo -e "#    $HIGHLIGHT Merging $feat$NORMAL"
+        repeatchar 60 '#'
         if git merge $feat; then
             MERGEDFEAT="$MERGEDFEAT$feat "
         else
@@ -1123,17 +1132,19 @@ elif [ "$DO" == 'T' ]; then
         fi
     done
     echo -e ""
-    echo -e "------------------------------------------------------------"
+    repeatchar 60 '='
     if [ -n "$MERGEDFEAT" ]; then
-        echo -e "$TITLE Following features where successfully merged:$NORMAL"
-        echo -e "  > $MERGEDFEAT"
+        echo -e "$TITLE Following features where successfully merged:$NORMAL$BOLD"
+        for feat in $MERGEDFEAT; do echo -e "  > $feat"; done
+        echo -e "$NORMAL"
     fi
     echo -e ""
     if [ -n "$NOTMERGEDFEAT" ]; then
-        echo -e "$TITLE Following features failled:"
-        echo -e "  > $ERRCOL$NOTMERGEDFEAT$NORMAL"
+        echo -e "$TITLE Following features failled:$ERRCOL"
+        for feat in $NOTMERGEDFEAT; do echo -e "  > $feat"; done
+        echo -e "$NORMAL"
     fi
-    echo -e "------------------------------------------------------------"
+    repeatchar 60 '='
 
     exit
 

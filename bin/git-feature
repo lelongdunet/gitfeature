@@ -76,6 +76,7 @@ multiselect()
     fi
 }
 
+
 initialize()
 {
     if INST_VER=$(git config workflow.feature); then
@@ -235,6 +236,10 @@ while getopts "AFrfm:tb:a:hucvpliPUsTL" OPTION; do
                     ;;
                 view)
                     DO='v'
+                    EXPECTED=1
+                    ;;
+                clear)
+                    DO='D'
                     EXPECTED=1
                     ;;
                 update)
@@ -649,12 +654,33 @@ function feat_stat()
 
 }
 
+function feat_local_branches()
+{
+    BRANCHES=''
+    featname=$1
+    if git rev-parse draft/$featname &> /dev/null; then
+        BRANCHES=" draft/$featname"'\n'
+    fi
+    if git rev-parse start/$featname &> /dev/null; then
+        BRANCHES="$BRANCHES start/$featname"'\n'
+    fi
+    if git rev-parse final/$featname &> /dev/null; then
+        BRANCHES="$BRANCHES final/$featname"'\n'
+    fi
+
+    echo "$BRANCHES"
+}
+
 function feat_list()
 {
     ALLFEATS="$(branch_list --list 'final/*')"
-    ALLFEATS="$ALLFEATS"'\n'"$(branch_list -r --list '*/final/*')"
+    if [ "$2" != "l" ]; then
+        ALLFEATS="$ALLFEATS"'\n'"$(branch_list -r --list '*/final/*')"
+    fi
     ALLFEATS="$ALLFEATS"'\n'"$(branch_list --list 'draft/*')"
-    ALLFEATS="$ALLFEATS"'\n'"$(branch_list -r --list '*/draft/*')"
+    if [ "$2" != "l" ]; then
+        ALLFEATS="$ALLFEATS"'\n'"$(branch_list -r --list '*/draft/*')"
+    fi
 
     ALLFEATS="$(echo -e "$ALLFEATS"|python "$PYPATH/filters.py")"
 
@@ -752,6 +778,46 @@ elif [ "$DO" == 'C' ]; then
     git rev-parse $FEATURESTART &> /dev/null && git branch -D $FEATURESTART
 
     exit
+
+elif [ "$DO" == 'D' ]; then
+    LIST="$(feat_list 'i' 'l')"
+    for feat in $LIST; do
+        COMMITDATE=$(git log -n1 --pretty=format:%ct $feat)
+        LASTCOMMIT=$(git log -n1 --pretty=format:%cr $feat|sed 's/ /_/g')
+        SELECTLIST="$SELECTLIST$COMMITDATE $feat $(basename $feat):($LASTCOMMIT) off"'\n'
+    done
+    SELECTLIST=$(echo -e "$SELECTLIST"|sort -n|sed 's/^\w*\s*//')
+
+    if ! multiselect "$SELECTLIST" "Select features you want to merge in test branch"; then
+        SELECTED=''
+    else
+        SELECTED=$(sed 's/"//g;s/\\#/#/g' "$TMPFILE")
+    fi
+
+    if [ -z "$SELECTED" ]; then
+        echo ""
+        echo "No feature selected for cleaning"
+        exit
+    fi
+
+    BRANCHLIST=''
+    for feat in $SELECTED; do
+        BRANCHLIST="$BRANCHLIST$(feat_local_branches $(basename $feat))"
+    done
+
+    TITLE="The following branches will be deleted. Are you sure?"
+    if dialog --title "$TITLE" --yesno "$BRANCHLIST" 40 120; then
+        BRANCHLIST=$(echo -e $BRANCHLIST)
+        for branch in $BRANCHLIST; do
+            echo " > Deleting $branch"
+            git branch -D $branch
+        done
+        repeatchar 70 '-'
+    else
+        echo "Deletion canceled."
+    fi
+    exit
+
 
 elif [ "$DO" == 'i' ]; then
     FEATREBASEDIR=$GITDIR/feat_rebase

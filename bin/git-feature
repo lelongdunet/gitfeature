@@ -55,10 +55,19 @@ menuselect()
 {
     echo "-----------------"
     MENUITEMS="$(echo -e "$1" | cat -n)"
-    if ! dialog --menu "$2" 40 100 15 $MENUITEMS  2> "$TMPFILE"; then
+    if ! dialog --menu "$2" 50 130 50 $MENUITEMS  2> "$TMPFILE"; then
         return 1
     fi
     echo -e "$MENUITEMS" | sed "/^\s*$(<"$TMPFILE")/!D;s/^\s*\w*\s*//" > "$TMPFILE"
+}
+
+multiselect()
+{
+    echo "-----------------"
+    #MENUITEMS="$(echo -e "$1" | cat -n)"
+    if ! dialog --checklist "$2" 50 130 50 $1  2> "$TMPFILE"; then
+        return 1
+    fi
 }
 
 initialize()

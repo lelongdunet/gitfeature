@@ -4,7 +4,7 @@
 PYPATH="$(dirname "$(readlink -f "$0")")"/../python
 TMPFILE=/tmp/featuretmp
 HOOKRELPATH=../hooks
-VER="v0.1.04"
+VER="v0.1.05"
 
 
 if ! GITDIR="$(git rev-parse --git-dir)"; then
@@ -144,6 +144,7 @@ initialize()
     git config alias.featlist "feature -l"
     git config alias.feattest "feature -T"
     git config alias.featclear "feature -a clear"
+    git config alias.featcherry "feature -a cherry"
 }
 
 unicref()
@@ -170,12 +171,15 @@ OPTIONS:
    -a      Perform the given action
             > close : Check the feature is integrated and destroy all branches
             > clear : Interactively close included features
+            > cherry : look for commits that are (not) cherry-picked in DEVREF
+                - accecpt reverse option -R for "not"
             > devref : Change the devref ( it must always contain the old one )
             > finalize : Finalize the feature
             > init : Initialize current repository to handle features
             > merge : Merge all features in a single branch
             > update : Update the specified feature using rebase
             > view : View local features and there remote updates
+                - accept full option -F to see all commits of DEVREF
             > view all : View local features and all updated remote features
    -b      Give a specific branch on which to base the new feature
    -c      Check feature (push and final)
@@ -235,6 +239,9 @@ while getopts "AFrfm:tb:a:hucvpliPUsTL" OPTION; do
                     initialize devel
                     exit
                     ;;
+                cherry)
+                    DO='Y'
+                    ;;
                 devref)
                     DO='d'
                     EXPECTED=1
@@ -261,6 +268,9 @@ while getopts "AFrfm:tb:a:hucvpliPUsTL" OPTION; do
             ;;
         F)
             FULL='y'
+            ;;
+        R)
+            REVERSE='y'
             ;;
         c)
             DO='c'
@@ -782,6 +792,10 @@ elif [ "$DO" == 'C' ]; then
     git rev-parse $FEATUREFINAL &> /dev/null && git branch -D $FEATUREFINAL
     git rev-parse $FEATURESTART &> /dev/null && git branch -D $FEATURESTART
 
+    exit
+
+elif [ "$DO" == 'Y' ]; then
+    git rev-list --cherry-pick --right-only --pretty=full $DEVREF...$FEATUREBRANCH
     exit
 
 elif [ "$DO" == 'D' ]; then

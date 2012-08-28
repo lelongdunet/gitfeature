@@ -4,7 +4,7 @@
 PYPATH="$(dirname "$(readlink -f "$0")")"/../python
 TMPFILE=/tmp/featuretmp
 HOOKRELPATH=../hooks
-VER="v0.1.03"
+VER="v0.1.04"
 
 
 if ! GITDIR=$(git rev-parse --git-dir); then
@@ -142,6 +142,8 @@ initialize()
     git config alias.featview "feature -v"
     git config alias.featviewall "feature -a view all"
     git config alias.featlist "feature -l"
+    git config alias.feattest "feature -T"
+    git config alias.featclear "feature -a clear"
 }
 
 unicref()
@@ -167,6 +169,7 @@ Default action is creating a new branch, other are provided through options
 OPTIONS:
    -a      Perform the given action
             > close : Check the feature is integrated and destroy all branches
+            > clear : Interactively close included features
             > devref : Change the devref ( it must always contain the old one )
             > finalize : Finalize the feature
             > init : Initialize current repository to handle features
@@ -197,10 +200,12 @@ The following alias can be used:
     > featpushall		"feature -P"
     > featmove			"feature -m"
     > featclose			"feature -a close"
+    > featclear			"feature -a clear"
     > featreview		"feature -r"
     > featfinalize		"feature -f"
     > featupdate		"feature -u"
     > featintegrate		"feature -i"
+    > feattest			"feature -T"
     > featview			"feature -v"
     > featviewall		"feature -a view all"
     > featlist			"feature -l"

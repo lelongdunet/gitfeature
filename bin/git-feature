@@ -7,7 +7,7 @@ HOOKRELPATH=../hooks
 VER="v0.1.04"
 
 
-if ! GITDIR=$(git rev-parse --git-dir); then
+if ! GITDIR="$(git rev-parse --git-dir)"; then
     exit 1
 fi
 
@@ -124,7 +124,7 @@ initialize()
     #Install hook
     HOOKPATH="$(dirname "$(readlink -f "$0")")/$HOOKRELPATH"
     echo "Getting hooks from $HOOKPATH"
-    if ! cp -a "$HOOKPATH/"* $GITDIR/hooks/; then
+    if ! cp -a "$HOOKPATH/"* "$GITDIR/hooks/"; then
         exit
     fi
 
@@ -825,7 +825,7 @@ elif [ "$DO" == 'D' ]; then
 
 
 elif [ "$DO" == 'i' ]; then
-    FEATREBASEDIR=$GITDIR/feat_rebase
+    FEATREBASEDIR="$GITDIR/feat_rebase"
     if [ -f "$FEATREBASEDIR/integration" ]; then
         echoimportant "JUST CLEAN THE PREVIOUS INTEGRATION"
         FEATURE="$(<"$FEATREBASEDIR/integration")"
@@ -1240,8 +1240,8 @@ elif [ "$DO" == 'T' ]; then
     git commit --allow-empty -F "$TMPFILE"
     git branch -f testing_track
 
-    echo "MERGEDFEAT='$MERGEDFEAT'" > $GITDIR/test_merge
-    echo "NOTMERGEDFEAT='$NOTMERGEDFEAT'" >> $GITDIR/test_merge
+    echo "MERGEDFEAT='$MERGEDFEAT'" > "$GITDIR/test_merge"
+    echo "NOTMERGEDFEAT='$NOTMERGEDFEAT'" >> "$GITDIR/test_merge"
     repeatchar 60 '='
 
     exit

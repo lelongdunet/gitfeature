@@ -1155,11 +1155,12 @@ elif [ "$DO" == 'e' ]; then
     dialog --menu "Choose which branch you to be based on" 40 100 15 1 $EXISTING 2> "$TMPFILE"
 
 elif [ "$DO" == 'T' ]; then
-    if lasttest=$(git config workflow.lastref); then
+    git branch -f testing_track testing &> /dev/null
+    if [ "$(git symbolic-ref HEAD)" == "refs/heads/testing" ]; then
+        git checkout testing_track
+    fi
+    if lasttest=$(git config workflow.lastref) && git config workflow.multipletest &> /dev/null ; then
         git branch $lasttest testing
-        if [ "$(git symbolic-ref HEAD)" == "refs/heads/testing" ]; then
-            git checkout $lasttest
-        fi
     fi
     git branch -f testing $DEVREF
     testname=$(unicref test$(date +%d%m%y).)
@@ -1167,7 +1168,7 @@ elif [ "$DO" == 'T' ]; then
     git checkout testing
 
     if [ -f "$GITDIR/test_merge" ]; then
-        source $GITDIR/test_merge
+        source "$GITDIR/test_merge"
     fi
 
     LIST="$(feat_list 'b')"
@@ -1237,6 +1238,7 @@ elif [ "$DO" == 'T' ]; then
     fi
 
     git commit --allow-empty -F "$TMPFILE"
+    git branch -f testing_track
 
     echo "MERGEDFEAT='$MERGEDFEAT'" > $GITDIR/test_merge
     echo "NOTMERGEDFEAT='$NOTMERGEDFEAT'" >> $GITDIR/test_merge

@@ -1261,14 +1261,7 @@ elif [ "$DO" == 'T' ]; then
     exit
 
 elif [ "$DO" == 'L' ]; then
-    LIST="$(feat_list 'b')"
-    SELECTLIST=''
-    for feat in $LIST; do
-        SELECTLIST="$SELECTLIST$(git log -n1 --pretty=format:%ct $feat) $feat $(basename $feat) off"'\n'
-    done
-    SELECTLIST=$(echo -e "$SELECTLIST"|sort -nr|sed 's/^\w*\s*//')
-    echo $SELECTLIST
-    #feat_list 'b'
+    feat_list 'b'
     exit
 
 elif [ "$DO" == 't' ]; then

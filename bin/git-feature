@@ -948,7 +948,7 @@ elif [ "$DO" == 'v' ]; then
     fi
     echo $BRANCHLIST
     echo "---------------------------------------"
-    gitk $BRANCHLIST
+    gitk $BRANCHLIST &
 
     exit
 

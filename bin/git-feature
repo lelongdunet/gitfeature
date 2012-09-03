@@ -2,7 +2,7 @@
 ##>Git subcommand to manage features
 
 PYPATH="$(dirname "$(readlink -f "$0")")"/../python
-TMPFILE=/tmp/featuretmp
+TMPFILE=/tmp/featuretmp.$USER
 HOOKRELPATH=../hooks
 VER="v0.1.05"
 

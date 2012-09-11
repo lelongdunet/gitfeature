@@ -175,6 +175,7 @@ OPTIONS:
             > cherry : look for commits that are (not) cherry-picked in DEVREF
                 - accecpt reverse option -R for "not"
             > devref : Change the devref ( it must always contain the old one )
+            > files : list files modified in all commits of the feature
             > finalize : Finalize the feature
             > init : Initialize current repository to handle features
             > merge : Merge all features in a single branch
@@ -246,6 +247,12 @@ while getopts "AFrfm:tb:a:hucvpliPUsTL" OPTION; do
                 devref)
                     DO='d'
                     EXPECTED=1
+                    ;;
+                diff)
+                    DO='diff'
+                    ;;
+                files)
+                    DO='files'
                     ;;
                 view)
                     DO='v'
@@ -771,6 +778,16 @@ elif [ "$DO" == 'U' ]; then
     git push $REMOTE $DEVREF && \
     git push $REMOTE $(list_feattags refs/markers/devref $DEVREF) && \
     git update-ref refs/markers/devref $DEVREF
+    exit
+
+elif [ "$DO" == 'diff' ]; then
+    STARTPOINT=$(start_point $FEATUREBRANCH) || exit 1
+    git diff "$STARTPOINT" "$FEATUREBRANCH"
+    exit
+
+elif [ "$DO" == 'files' ]; then
+    STARTPOINT=$(start_point $FEATUREBRANCH) || exit 1
+    git diff --stat "$STARTPOINT" "$FEATUREBRANCH" |sed '/|/!D;s/^\s*\(\S*\)\s.*$/\1/'
     exit
 
 elif [ "$DO" == 's' ]; then

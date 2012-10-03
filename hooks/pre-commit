@@ -37,6 +37,7 @@ fi
 #Check if a valid branch is available as head
 if CURRENT=$(git symbolic-ref HEAD 2> /dev/null); then
     CURRENTNAMESPACE=$(dirname ${CURRENT##refs/heads/})
+    CURRENTBRANCH=${CURRENT##refs/heads/}
     CURRENTFEAT=$(basename $CURRENT)
 
     if [[ "$CURRENTNAMESPACE" == "$STARTNAMESPACE" ]]; then
@@ -56,31 +57,52 @@ if CURRENT=$(git symbolic-ref HEAD 2> /dev/null); then
     fi
 
     if [[ "$CURRENTNAMESPACE" == "$DRAFTNAMESPACE" ]]; then
+        #Check if there is a start point
+        STARTFEAT=$STARTNAMESPACE/$CURRENTFEAT
+        if git rev-parse $STARTFEAT &> /dev/null; then
+            #Check if start point is contained in branch
+            DISTANCESTART=$(git rev-list --count $STARTFEAT ^$against)
+            if [ ! "$DISTANCESTART" == 0 ]; then
+                echo "###########################################"
+                echo "The start point $STARTFEAT is at strange position"
+                echo "You should fix it before continuing!"
+                echo "###########################################"
+                exit 1
+            fi
+            STARTPOINT='y'
+        fi
         #Check if the branch is updated (DEVREF must be in history)
         DISTANCE=$(git rev-list --count $DEVREF ^$against)
         if [ ! "$DISTANCE" == 0 ]; then
-            echo "########### -- ERROR -- ###################"
-            echo "Your current branch is not based on $DEVREF"
-            echo "Run rebase before commiting!"
-            echo "  - The rebase can be mase using feature update with"
-            echo "git feature -u"
-            echo ""
-            echo "###########################################"
-            echo "  - You can save your index state using the stash with"
-            echo "git stash save --keep-index MYLASTCHANGE"
-            echo "git stash save MYLASTINDEX"
-            echo ""
-            echo "  - Then you will restore your index with"
-            echo "git stash apply"
-            echo "# > Check there are no conflicts"
-            echo "git stash drop"
-            echo "git add -u"
-            echo "git stash apply"
-            echo "# > Check there are no conflicts"
-            echo "git stash drop"
-            echo ""
-            echo "------------------------------------------"
-            exit 1
+            if [ "$STARTPOINT" == "y" ]; then
+                echo "###########################################"
+                echo "WARNING"
+                echo "> You are not based on an up to date feature!"
+                echo "###########################################"
+            else
+                echo "########### -- ERROR -- ###################"
+                echo "Your current branch is not based on $DEVREF"
+                echo "Run rebase before commiting!"
+                echo "  - The rebase can be mase using feature update with"
+                echo "git feature -u"
+                echo ""
+                echo "###########################################"
+                echo "  - You can save your index state using the stash with"
+                echo "git stash save --keep-index MYLASTCHANGE"
+                echo "git stash save MYLASTINDEX"
+                echo ""
+                echo "  - Then you will restore your index with"
+                echo "git stash apply"
+                echo "# > Check there are no conflicts"
+                echo "git stash drop"
+                echo "git add -u"
+                echo "git stash apply"
+                echo "# > Check there are no conflicts"
+                echo "git stash drop"
+                echo ""
+                echo "------------------------------------------"
+                exit 1
+            fi
         fi
 
         #Check if there is final branch

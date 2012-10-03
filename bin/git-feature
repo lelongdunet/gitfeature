@@ -4,7 +4,7 @@
 PYPATH="$(dirname "$(readlink -f "$0")")"/../python
 TMPFILE=/tmp/featuretmp.$USER
 HOOKRELPATH=../hooks
-VER="v0.1.05"
+VER="v0.1.06"
 
 
 if ! GITDIR="$(git rev-parse --git-dir)"; then

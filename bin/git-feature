@@ -315,6 +315,7 @@ while getopts "AFrfm:tb:a:hucvpliPRUsTL" OPTION; do
             ;;
         i)
             DO='i'
+            OPTFEATARG='y'
             ;;
         l)
             DO='l'
@@ -904,6 +905,24 @@ elif [ "$DO" == 'i' ]; then
     fi
     CURRENTBRANCH=${CURRENT##refs/heads/}
 
+    if [ "$REVERSE" == "y" ]; then
+        echo "Reverting last included feature..."
+        TAGNAME=$(git tag -l --contains devel '@*_*')
+        if [ -z "$TAGNAME" ]; then
+            echoerr "No valid tag found!"
+            exit 3
+        fi
+        echo " > Remove $TAGNAME and go back in $CURRENTBRANCH"
+        git tag -d "$TAGNAME"
+        git reset --hard $CURRENTBRANCH@{1}
+        exit
+    fi
+
+    if [ -z "$FEATURE" ]; then
+        echoerr "A feature must be specified!"
+        exit 4
+    fi
+
     echo "Including $FEATURE in $CURRENTBRANCH"
     if [ -z "$EXISTFINAL" ]; then
         echo "No final branch found for inclusion of $FEATURE"
@@ -931,6 +950,8 @@ elif [ "$DO" == 'i' ]; then
         git tag '@'$FEATURE"_$(date '+%s')"
     else
         FEATUREINTEGRATE=integrate/$FEATURE
+        echo ''
+        echo git branch -f $FEATUREINTEGRATE $CHOSENFINAL
         git branch -f $FEATUREINTEGRATE $CHOSENFINAL
 
         export INTEGRATION=$FEATURE

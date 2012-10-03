@@ -180,6 +180,7 @@ OPTIONS:
                 - accecpt reverse option -R for "not"
             > devref : Change the devref ( it must always contain the old one )
             > files : list files modified in all commits of the feature
+            > diff : show all patch (overall diff) of the feature (all commits together)
             > finalize : Finalize the feature
             > init : Initialize current repository to handle features
             > merge : Merge all features in a single branch
@@ -192,13 +193,16 @@ OPTIONS:
    -f      Finalize the feature.
    -h      Display this help.
    -i      Include feature in current branch
+               - accecpt -R (revert) option to cancel last integration
    -l      List all features
    -m      Move the feature upon a new base
+                > Specify the feature on which you want to move the current feature
    -p      Push the given feature
    -P      Push all local features
    -r      Review commits of the branch ( git rebase -i )
    -t      Dummy option for test purpose.
    -T      Make a test branch
+                > Allows to interactively select features to try to merge together.
    -u      Update the specified feature using rebase (Same as -a update )
    -U      Update remote DEVREF and tags (integrator only)
    -v      View local features in gitk. Or if a remote name is specified, view
@@ -211,12 +215,13 @@ The following alias can be used:
     > featmove			"feature -m"
     > featclose			"feature -a close"
     > featclear			"feature -a clear"
+    > featcherry		"feature -a cherry"
     > featreview		"feature -r"
     > featfinalize		"feature -f"
     > featupdate		"feature -u"
     > featintegrate		"feature -i"
     > feattest			"feature -T"
-    > featview			"feature -v"
+    > featview			"feature -v"    (see -a view)
     > featviewall		"feature -a view all"
     > featlist			"feature -l"
 

@@ -482,6 +482,18 @@ function start_point()
     echo $START
 }
 
+function feature_root()
+{
+    STARTPOINT=$(start_point $FEATUREBRANCH) || exit 1
+
+    if [ "$STARTPOINT" == "$DEVREF" ]; then
+        STARTPOINT=$(git merge-base "$DEVREF" "$FEATUREBRANCH")
+    fi
+
+    echo $STARTPOINT
+}
+
+
 #List features on which we are based
 function list_feat_depend()
 {
@@ -781,13 +793,13 @@ elif [ "$DO" == 'U' ]; then
     exit
 
 elif [ "$DO" == 'diff' ]; then
-    STARTPOINT=$(start_point $FEATUREBRANCH) || exit 1
+    STARTPOINT=$(feature_root $FEATUREBRANCH) || exit 1
     git diff "$STARTPOINT" "$FEATUREBRANCH"
     exit
 
 elif [ "$DO" == 'files' ]; then
-    STARTPOINT=$(start_point $FEATUREBRANCH) || exit 1
-    git diff --stat "$STARTPOINT" "$FEATUREBRANCH" |sed '/|/!D;s/^\s*\(\S*\)\s.*$/\1/'
+    STARTPOINT=$(feature_root $FEATUREBRANCH) || exit 1
+    git diff --name-only "$STARTPOINT" "$FEATUREBRANCH"
     exit
 
 elif [ "$DO" == 's' ]; then

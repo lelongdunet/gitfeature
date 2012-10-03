@@ -39,7 +39,7 @@ HIGHLIGHT="$NORMAL$GREENBOLD"
 
 echoerr()
 {
-    echo -e "$ERRCOL$1$NORMAL"
+    echo -e "$ERRCOL$1$NORMAL" >&2
 }
 
 echowarn()

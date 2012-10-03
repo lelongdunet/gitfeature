@@ -225,7 +225,7 @@ EOF
 
 DO='n' # Default action is new feature
 
-while getopts "AFrfm:tb:a:hucvpliPUsTL" OPTION; do
+while getopts "AFrfm:tb:a:hucvpliPRUsTL" OPTION; do
     case $OPTION in
         a)
             case $OPTARG in

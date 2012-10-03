@@ -61,7 +61,11 @@ repeatchar()
 menuselect()
 {
     echo "-----------------"
-    MENUITEMS="$(echo -e "$1" | cat -n)"
+    if [ "$3" == '-d' ]; then
+        MENUITEMS="$1"
+    else
+        MENUITEMS="$(echo -e "$1" | cat -n)"
+    fi
     if ! dialog --menu "$2" 50 130 50 $MENUITEMS  2> "$TMPFILE"; then
         return 1
     fi
@@ -354,6 +358,8 @@ elif [ -n "$EXPECTED" ]; then
     ARG=$1
 elif [ $# == 1 ]; then
     FEATUREBRANCH=$1
+elif [ "$OPTFEATARG" == "y" ]; then
+    FEATUREBRANCH=""
 elif test "$DO" != 'n' && CURRENT=$(git symbolic-ref HEAD 2> /dev/null); then
     FEATUREBRANCH=${CURRENT##refs/heads/}
 else
@@ -363,7 +369,7 @@ fi
 
 if [ -n "$FEATUREBRANCH" ]; then
     FEATURE=$(basename $FEATUREBRANCH)
-elif [[ -z "$EXPECTED" ]]; then
+elif [[ -z "$EXPECTED" && -z "$OPTFEATARG" ]]; then
     echoerr "No feature name or branch provided!"
     exit 1
 fi
@@ -408,7 +414,7 @@ if [ ! "$FEATURE" == "$FEATUREBRANCH" ]; then
         exit 20
     fi
 else
-    if [[ $# == 0 && -z "$EXPECTED" ]]; then
+    if [[ $# == 0 && -z "$EXPECTED" && -z "$OPTFEATARG" ]]; then
         echoerr "You are not in a feature branch"
         echoerr "Either checkout the branch or provide the feature name in command line"
         exit 1

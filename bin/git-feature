@@ -426,7 +426,7 @@ function list_feattags()
     START=$1
     END=$2
     git rev-list --simplify-by-decoration --pretty='format:%d' $START..$END \
-        |sed '/@[^(),]\+_\w\+/!D;s/^.*\(@[^(),]\+_\w\+\).*$/\1/'
+        |sed '/@[^(),]\+_\w\+/!D;s/^\s*(\(@[^(),]\+_\w\+\).*$/\1/'
 }
 
 function is_local()

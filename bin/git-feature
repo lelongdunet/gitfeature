@@ -897,6 +897,11 @@ elif [ "$DO" == 'i' ]; then
         echoerr "You must be in a valid local branch for include operation!"
         exit 1
     fi
+    #Check current branch is not a feature
+    if [[ "$CURRENT" =~ '/draft/' || "$CURRENT" =~ '/final/' ]]; then
+        echoerr "You are in feature branch. Be carefull!"
+        exit 2
+    fi
     CURRENTBRANCH=${CURRENT##refs/heads/}
 
     echo "Including $FEATURE in $CURRENTBRANCH"
@@ -911,10 +916,10 @@ elif [ "$DO" == 'i' ]; then
     elif [[ -n "$ABOVEREF" && $(echo -e "$ABOVEREF" | wc -l) == 1 ]]; then
         CHOSENFINAL=$ABOVEREF
     else
-        if ! menuselect "$EXISTFINAL" "Choose a final reference for the feature $FEATURE"; then
+        if ! menuselect "$EXISTFINAL" "Choose a final reference for the feature $FEATURE" -d; then
             exit
         fi
-        CHOSENFINAL=$(sed 's#^.*refs/\w*/\(.*\)\s*$#\1#' "$TMPFILE")
+        CHOSENFINAL=$(sed '1!D;s#^.*refs/\w*/\(.*\)\s*$#\1#' "$TMPFILE")
     fi
 
     #Get NEWBASE SHA-1

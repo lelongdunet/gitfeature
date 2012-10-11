@@ -730,7 +730,8 @@ function feat_list()
         ALLFEATS="$ALLFEATS"'\n'"$(branch_list -r --list '*/draft/*')"
     fi
 
-    ALLFEATS="$(echo -e "$ALLFEATS"|python "$PYPATH/filters.py")"
+    REMOTE=$(git config workflow.remote)
+    ALLFEATS="$(echo -e "$ALLFEATS"|python "$PYPATH/filters.py" "$REMOTE")"
 
 
     #Separate included / not included features

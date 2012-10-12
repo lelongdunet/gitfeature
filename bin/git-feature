@@ -1298,6 +1298,8 @@ elif [ "$DO" == 'T' ]; then
     echo "Performing selected merges : "
     MERGEDFEAT=''
     NOTMERGEDFEAT=''
+    #Don't open editor in git merge
+    export GIT_MERGE_AUTOEDIT=no
 
     for feat in $SELECTED; do
         echo ""

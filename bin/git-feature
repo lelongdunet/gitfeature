@@ -69,7 +69,7 @@ menuselect()
     if ! dialog --menu "$2" 50 130 50 $MENUITEMS  2> "$TMPFILE"; then
         return 1
     fi
-    echo -e "$MENUITEMS" | sed "/^\s*$(<"$TMPFILE")/!D;s/^\s*\w*\s*//" > "$TMPFILE"
+    echo -e "$MENUITEMS" | sed "/^\s*$(<"$TMPFILE")\s/!D;s/^\s*\w*\s*//" > "$TMPFILE"
 }
 
 multiselect()
@@ -914,7 +914,7 @@ elif [ "$DO" == 'i' ]; then
 
     if [ "$REVERSE" == "y" ]; then
         echo "Reverting last included feature..."
-        TAGNAME=$(git tag -l --contains devel '@*_*')
+        TAGNAME=$(git tag -l --contains $CURRENTBRANCH '@*_*')
         if [ -z "$TAGNAME" ]; then
             echoerr "No valid tag found!"
             exit 3

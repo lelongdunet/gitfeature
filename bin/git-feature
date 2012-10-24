@@ -1251,6 +1251,13 @@ elif [ "$DO" == 'e' ]; then
     dialog --menu "Choose which branch you to be based on" 40 100 15 1 $EXISTING 2> "$TMPFILE"
 
 elif [ "$DO" == 'T' ]; then
+    #Check if repo is clean
+    if ! git diff --quiet HEAD; then
+        echoerr "The repository needs to be clean for this operation."
+        echo "Please clean uncommited changes and try again."
+        exit 6
+    fi
+
     git branch -f testing_track testing &> /dev/null
     if [ "$(git symbolic-ref HEAD)" == "refs/heads/testing" ]; then
         git checkout testing_track

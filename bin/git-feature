@@ -284,7 +284,10 @@ while getopts "AFrfm:tb:a:hucvpliPRUsTL" OPTION; do
                 close)
                     DO='C'
                     ;;
-
+				tags)
+					DO='tags'
+					EXPECTED=none
+					;;
             esac
             ;;
         A)
@@ -443,8 +446,14 @@ fi
 function list_feattags()
 {
     START=$1
-    END=$2
-    git rev-list --simplify-by-decoration --pretty='format:%d' $START..$END \
+	if [ -z "$2" ]; then
+		REFS=$1
+	else
+		END=$2
+		REFS=$START..$END
+	fi
+
+    git rev-list --simplify-by-decoration --pretty='format:%d' $REFS \
         |sed '/[ (,]@[^(),]\+_\w\+/!D;s/^\s*([^)@]*\(@[^(),]\+_\w\+\).*$/\1/'
 }
 
@@ -798,6 +807,10 @@ if [ "$DO" == 'd' ]; then
         git update-ref refs/markers/devref $NEWREF
     fi
     exit
+
+elif [ "$DO" == 'tags' ]; then
+	list_feattags $DEVREF
+	exit
 
 elif [ "$DO" == 'U' ]; then
     echo "Update remote devel reference : $DEVREF"

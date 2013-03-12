@@ -12,4 +12,8 @@ if __name__ == '__main__':
             print '%r' % f
         #l=[f for f in repo_cache.features.itervalues() if f.mainbranch is None]
 
+    elif argv[1] == 'featlist':
+        for feat in repo_cache.listfeat():
+            print feat
+
 

@@ -1,16 +1,16 @@
 import cPickle
 from binascii import a2b_hex, b2a_hex
+from posixpath import join, basename, dirname
+from os.path import exists, join as join_file
 
 
 _GITDIR = '.git'
 _GITROOT = '.'
-_DEVREF = 'devel'
+_DEVREF = 'heads/devel'
 _MYREPO = 'mine'
 
 def load_cache():
-    from os.path import exists, join
-
-    pickle_file = join(_GITDIR, 'featcache')
+    pickle_file = join_file(_GITDIR, 'featcache')
     if exists(pickle_file):
         repo_cache = cPickle.load(open(pickle_file))
     else:
@@ -18,11 +18,6 @@ def load_cache():
 
     return repo_cache
 
-def _save_cache(repo_cache):
-    from os.path import exists, join
-
-    pickle_file = join(_GITDIR, 'featcache')
-    cPickle.dump(repo_cache, open(pickle_file, 'wb'), -1)
 
 #States are in priority order
 _featstates = ('start', 'tmp', 'save', 'draft', 'final')
@@ -38,23 +33,6 @@ class InvalidUnique(Error):
 
 class UniqueViolation(Error):
     pass
-
-class Unique(object):
-    def __init__(self, name):
-        if not hasattr(self, 'inst'):
-            raise InvalidUnique
-
-        if self.inst.has_key(name):
-            raise UniqueViolation
-
-        self.inst[name] = self
-        self.name = name
-
-class UniqueTest(Unique):
-    inst = {}
-    def __init__(self, name, data):
-        Unique.__init__(self, name)
-        self.data = data
 
 class Commit(object):
     def __init__(self, repo_cache, sha, head = None, branch = None):
@@ -205,6 +183,7 @@ class Feature(object):
         self.mainbranch = branch
         self.pushed = False
         self.repo_cache = repo_cache
+        self.integrated = False
 
     def addbranch(self, branch):
         """ Update data of a branch related to this feature """
@@ -251,6 +230,9 @@ class Feature(object):
 
         verbose('> %s selectremote : %s' % (self, selectremote))
         verbose('> %s branchlocal : %s' % (self, branchlocal))
+        if self.repo_cache.check_integrated(self.name):
+            self.integrated = True
+
         if branchlocal is not None:
             self.mainbranch = branchlocal
         else:
@@ -277,8 +259,94 @@ class Feature(object):
         return self.name
 
     def __repr__(self):
-        return '%s %s' % (self.mainbranch, self.branches)
+        return '%50s : %s : %s' % (self.mainbranch, self.integrated, self.branches)
 
+class CommitStore(object):
+    def __init__(self):
+        self.commits = {}
+        self.devrefs = {}
+        self.fixedfeat = {}
+
+    def _mapnewcommits(self, sha, index = 0):
+        sha_bin = a2b_hex(sha)
+        max_index = 0
+        while sha_bin is not None and not self.commits.has_key(sha_bin):
+            commit = self.repo.commit(sha)
+            if self.newcommits.has_key(sha_bin):
+                if index > self.newcommits[sha_bin]:
+                    self.newcommits[sha_bin] = index
+                else:
+                    index = self.newcommits[sha_bin]
+            else:
+                #TODO Check message to scan integrated features (instead of tag)
+                self.newcommits[sha_bin] = index
+            index += 1
+
+            l = len(commit.parents)
+            if l > 1:
+                for sha in commit.parents:
+                    tmp = self._mapnewcommits(sha, index)
+                    if tmp > max_index:
+                        max_index = tmp
+
+                sha_bin = None
+            elif l == 0:
+                sha_bin = None
+            else:
+                sha = commit.parents[0]
+                sha_bin = a2b_hex(sha)
+
+        if sha_bin is not None:
+            index += self.commits[sha_bin]
+        if index > max_index:
+            max_index = index
+
+        return max_index
+
+    def mapnewcommits(self, refheads, repo):
+        """Record new integrated commits after devref update """
+        self.repo = repo
+        self.newcommits = {}
+        self.integrated = {}
+
+        max_index = 0
+        #First count commit in reverse order using _mapnewcommits
+        for refhead, sha in refheads.iteritems():
+            if self.devrefs.has_key(refhead):
+                committocheck = self.devrefs[refhead]
+            else:
+                committocheck = None
+            #TODO Detect rebase (use committocheck)
+            tmp = self._mapnewcommits(sha)
+            if tmp > max_index:
+                max_index = tmp
+
+            self.devrefs[refhead] = sha
+
+        #Now reverse commit count
+        for sha, count in self.newcommits.iteritems():
+            count = max_index - count
+            verbose('Reverse count : %s : %d' % (b2a_hex(sha), count))
+            self.commits[sha] = count
+
+        #TODO To remove when tags will be replaced by commit message
+        tags = {ref[11:] : h
+                for ref, h in repo.get_refs().iteritems()
+                if ref.startswith('refs/tags/@')}
+
+        for tag, sha in tags.iteritems():
+            sha = a2b_hex(sha)
+            if self.newcommits.has_key(sha):
+                tag = tag.rsplit('_', 1)[0]
+                verbose('New feature integration detected : %s' % tag)
+                self.integrated[tag] = sha
+
+        del(self.newcommits)
+        del(self.repo)
+
+    def __str__(self):
+        return '\n'.join(['%s : %s' % (count, b2a_hex(sha))
+            for sha, count in self.commits.iteritems()])
 
 class RepoCache(object):
     def __init__(self):
@@ -286,6 +354,7 @@ class RepoCache(object):
         self.commits = {}
         self.branches = {}
         self.featusers = []
+        self.devrefs = {}
 
     def featupdate(self, featname, branch):
         if self.features.has_key(featname):
@@ -314,24 +383,83 @@ class RepoCache(object):
         """ Check branches that must be removed from branches """
         return []
 
+    def _load_commitstore(self):
+        if not hasattr(self, 'commitstore') or self.commitstore is None:
+            pickle_file = join_file(_GITDIR, 'featstore')
+            if exists(pickle_file):
+                self.commitstore = cPickle.load(open(pickle_file))
+            else:
+                self.commitstore = CommitStore()
+
+    def _save_cache(self):
+        if hasattr(self, 'commitstore') and self.commitstore is not None:
+            print 'Save commitstore : %s' % self.commitstore.devrefs
+            f = open('out', 'w')
+            f.write(str(self.commitstore))
+            f.close()
+            pickle_file = join_file(_GITDIR, 'featstore')
+            cPickle.dump(self.commitstore, open(pickle_file, 'wb', -1))
+            del(self.commitstore)
+        else:
+            print 'No save commitstore'
+
+        pickle_file = join_file(_GITDIR, 'featcache')
+        cPickle.dump(self, open(pickle_file, 'wb'), -1)
+
+    def check_integrated(self, featname):
+        self._load_commitstore()
+
+        if not hasattr(self.commitstore, 'integrated'):
+            return 0
+        if not self.commitstore.integrated.has_key(featname):
+            return 0
+
+        sha = self.commitstore.integrated[featname]
+        return self.commitstore.commits[sha]
+
+    def isindevref(self, sha):
+        self._load_commitstore()
+        if not self.commitstore.commits.has_key(sha):
+            return 0
+        return self.commitstore.commits.has_key(sha)
+
     def sync(self):
         """ Sync cache with real state of the repository """
         from dulwich.repo import Repo
 
         repo = Repo(_GITROOT)
+
+        #TODO Manage multiple devref
+        devref = _DEVREF
+        basedevref = basename(devref)
+
+        sha_hex = repo.ref('refs/%s' % devref)
+        sha = a2b_hex(sha_hex)
+        devref_tocheck = {}
+        if (not self.devrefs.has_key(basedevref)
+                or sha != self.devrefs[basedevref]):
+            devref_tocheck[basedevref] = sha_hex
+        if len(devref_tocheck) > 0:
+            verbose('Changes on devrefs : %s' % devref_tocheck)
+            self._load_commitstore()
+            self.commitstore.mapnewcommits(devref_tocheck, repo)
+
+            for name, sha in devref_tocheck.iteritems():
+                self.devrefs[name] = a2b_hex(sha)
+            all_check = True
+        else:
+            all_check = False
+
         count = 0
         changed = []
         created = []
-
-        #TODO Check DEVREF state
-
         for ref in repo.refs.subkeys('refs/heads/'):
             nameparts = ref.split('/')
             if len(nameparts) > 1 and nameparts[-2] in _featstates:
                 count += 1
                 sha = a2b_hex(repo.ref('refs/heads/%s' % ref))
                 if self.branches.has_key(ref):
-                    if sha != self.branches[ref].commit.sha:
+                    if sha != self.branches[ref].commit.sha or all_check:
                         changed.append((ref, sha, True))
                 else:
                     created.append((ref, sha, True))
@@ -343,7 +471,7 @@ class RepoCache(object):
                 count += 1
                 sha = a2b_hex(repo.ref('refs/remotes/%s' % ref))
                 if self.branches.has_key(ref):
-                    if sha != self.branches[ref].commit.sha:
+                    if sha != self.branches[ref].commit.sha or all_check:
                         changed.append((ref, sha, False))
                 else:
                     created.append((ref, sha, False))
@@ -371,7 +499,7 @@ class RepoCache(object):
         for branch_data in changed:
             branchname, sha, local = branch_data
             branch = self.branches[branchname]
-            self.sethead(branch)
+            self.sethead(sha, branch)
             branchlist.append((branch, sha))
             if not branch.feature in featlist:
                 featlist.append(branch.feature)
@@ -386,11 +514,12 @@ class RepoCache(object):
             feature.update()
 
         #Finally save newly updated cache
-        print 'Save...'
-        _save_cache(self)
+        verbose('Save...')
+        self._save_cache()
 
-    def listfeat(self, local = None, featuser = None):
+    def listfeat(self, local = None, featuser = None, active = True):
         listout = []
+        print 'active %s ' % active
         for feature in self.features.itervalues():
             hide = False
             if local is not None and feature.haslocal() != local:
@@ -399,9 +528,12 @@ class RepoCache(object):
             if featuser is not None and not feature.hasuser(featuser):
                 hide = True
 
-            if not hide:
-                listout.append(feat)
-            
+            if active and feature.integrated:
+                hide = True
 
+            if not hide:
+                listout.append(feature.mainbranch)
+
+        return listout
 
 

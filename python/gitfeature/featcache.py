@@ -34,6 +34,21 @@ class InvalidUnique(Error):
 class UniqueViolation(Error):
     pass
 
+class BranchError(Error):
+    pass
+
+class FeatureMergeError(BranchError):
+    pass
+
+class FeaturePushError(BranchError):
+    pass
+
+class FeatureStartError(BranchError):
+    pass
+
+class NotFoundFeature(Error):
+    pass
+
 class Commit(object):
     def __init__(self, repo_cache, sha, head = None, branch = None):
         if repo_cache.commits.has_key(sha):
@@ -91,6 +106,23 @@ class Commit(object):
         return b2a_hex(self.sha)
 
 class Branch(object):
+    """ This class represent a git branch with its feature properties
+
+    Branches represented by this class is either a start point or
+    corresponds to a state of the feature.
+    Following properties are available :
+        - name : The name of the branch (this is also given by str())
+        - commit : Commit object at head of this branch
+        - error : if not None, this branch is in a bad state
+        - local : True if this branch is local
+        - stat : SHA or Branch instance of the related start point
+        - time : Date of last modification of last commit
+        - updated : True if this branch is above its base
+        - parent : NC
+        - delete : This branch is pending for deletion
+    Other informations can be get through functions
+    """
+
     def __init__(self, repo_cache, name, local):
         if repo_cache.branches.has_key(name):
             raise InvalidUnique
@@ -110,6 +142,7 @@ class Branch(object):
         self.repo_cache = repo_cache
         self.name = name
         self.commit = None
+        self.error = None
         self.local = local
         self.feature = repo_cache.featupdate(featname, self)
         self.start = None
@@ -120,9 +153,11 @@ class Branch(object):
         self.deleted = False
 
     def isstart(self):
+        """ Return True if this is a start point branch """
         return self._stateid == 0
 
     def isfinal(self):
+        """ Return True if this is a final branch """
         return _featstates[self._stateid] == 'final'
 
     def fullname(self):
@@ -159,10 +194,12 @@ class Branch(object):
         #TODO Walk through commit and get start point(s)
 
     def delete(self):
+        """ Set this branch to be deleted """
         self.deleted = True
         self.feature.delbranch(self)
 
     def state(self):
+        """ Return current state of this branch """
         return _featstates[self._stateid]
 
     def __str__(self):
@@ -173,12 +210,27 @@ class Branch(object):
 
 
 class Feature(object):
+    """ This class represent a feature.
+
+    A feature can be associated with severall git branches and
+    has severall states until it is integrated in one of 
+    DEVREF branches.
+
+    Following properties are available:
+        - name : The name of the branch (this is also given by str())
+        - error : if not None, this branch is in a bad state
+        - pushed : True if the local branch of this feature has been pushed
+        - pushupdated : True if there are no changes since last push
+        - integrated : True if this feature is integrated in one DEVREF
+    Other informations can be get through functions
+    """
     def __init__(self, repo_cache, name, branch):
         if repo_cache.features.has_key(name):
             raise InvalidUnique
         repo_cache.features[name] = self
 
         self.name = name
+        self.error = None
         self.branches = set((branch,))
         self.mainbranch = branch
         self.pushed = False
@@ -239,9 +291,11 @@ class Feature(object):
             self.mainbranch = selectremote
 
     def haslocal(self):
+        """ Return True if there is a local branch for this feature """
         return self.mainbranch.local
 
     def hasuser(self, featuser):
+        """ Return True if specified user has a branch for this feature """
         for branch in self.branches:
             if branch.featuser == featuser:
                 return True
@@ -249,19 +303,20 @@ class Feature(object):
         return False
 
     def heads(self):
-        if self.mainbranch.local:
-            return [self.mainbranch.local]
-        else:
-            return [branch for branch in self.branches
-                    if branch._stateid == self.mainbranch._stateid]
+        """ Return the list of active branches for this feature """
+        return [branch for branch in self.branches
+                if branch._stateid == self.mainbranch._stateid]
 
     def __str__(self):
         return self.name
 
     def __repr__(self):
-        return '%50s : %s : %s' % (self.mainbranch, self.integrated, self.branches)
+        return '%50s : %s : %s' % (
+                self.mainbranch,
+                self.integrated,
+                self.branches)
 
-class CommitStore(object):
+class _CommitStore(object):
     def __init__(self):
         self.commits = {}
         self.devrefs = {}
@@ -349,6 +404,7 @@ class CommitStore(object):
             for sha, count in self.commits.iteritems()])
 
 class RepoCache(object):
+    """ This class hold cached data related to features and branches """
     def __init__(self):
         self.features = {}
         self.commits = {}
@@ -389,7 +445,7 @@ class RepoCache(object):
             if exists(pickle_file):
                 self.commitstore = cPickle.load(open(pickle_file))
             else:
-                self.commitstore = CommitStore()
+                self.commitstore = _CommitStore()
 
     def _save_cache(self):
         if hasattr(self, 'commitstore') and self.commitstore is not None:
@@ -416,6 +472,9 @@ class RepoCache(object):
 
         sha = self.commitstore.integrated[featname]
         return self.commitstore.commits[sha]
+
+    def isatdevref(self, sha):
+        return sha in self.commitstore.devrefs.values()
 
     def isindevref(self, sha):
         self._load_commitstore()
@@ -453,6 +512,7 @@ class RepoCache(object):
         count = 0
         changed = []
         created = []
+        #Check changes in branches
         for ref in repo.refs.subkeys('refs/heads/'):
             nameparts = ref.split('/')
             if len(nameparts) > 1 and nameparts[-2] in _featstates:
@@ -508,7 +568,10 @@ class RepoCache(object):
         for branch_data in branchlist:
             branch = branch_data[0]
             sha = branch_data[1]
-            branch.updatecommits(repo, sha)
+            try:
+                branch.updatecommits(repo, sha)
+            except BranchError as e:
+                verbose('Error on branch %s : %s' % (basename(str(branch)), e))
 
         for feature in featlist:
             feature.update()
@@ -519,7 +582,6 @@ class RepoCache(object):
 
     def listfeat(self, local = None, featuser = None, active = True):
         listout = []
-        print 'active %s ' % active
         for feature in self.features.itervalues():
             hide = False
             if local is not None and feature.haslocal() != local:

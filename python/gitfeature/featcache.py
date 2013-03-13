@@ -640,4 +640,31 @@ class RepoCache(object):
 
         return listout
 
+    def get_feature(self, featname):
+        featname = basename(featname)
+        if not self.features.has_key(featname):
+            raise NotFoundFeature
+        feature = self.features[featname]
+        if feature.mainbranch.error is not None:
+            raise feature.mainbranch.error
+        if feature.error is not None:
+            raise feature.error
+
+        return feature
+
+    def get_start(self, featname):
+        """ Return SHA of the start point of the given feature """
+        return b2a_hex(self.get_feature(featname).mainbranch.get_start())
+
+    def get_branches(self, featname):
+        """ Return list of branches of the given feature """
+        return ' '.join(map(str, self.get_feature(featname).heads()))
+
+    def get_state(self, featname):
+        """ Return current state of the given feature """
+        return self.get_feature(featname).mainbranch.state()
+
+    def get_mainbranch(self, featname):
+        """ Return the main working branch of the given feature """
+        return self.get_feature(featname).mainbranch
 

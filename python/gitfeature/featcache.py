@@ -160,6 +160,12 @@ class Branch(object):
         """ Return True if this is a final branch """
         return _featstates[self._stateid] == 'final'
 
+    def get_start(self):
+        """ Return SHA of the start point """
+        if isinstance(self.start, Branch):
+            return self.start.commit.sha
+        return self.start
+
     def fullname(self):
         """ Return the full name of the branch """
         state = _featstates[self._stateid]
@@ -188,10 +194,42 @@ class Branch(object):
             self.commit = Commit(self.repo_cache, sha, head = self)
             self.repo_cache.commits[sha] = self.commit
 
-        #TODO Get commit time
-        self.time = 0
+        commit = repo.commit(sha)
+        self.time = commit.commit_time
 
-        #TODO Walk through commit and get start point(s)
+        #Walk until start point
+        start = None
+        while not self.repo_cache.isindevref(sha):
+            if self.repo_cache.commits.has_key(sha):
+                branches = self.repo_cache.commits[sha].heads
+                #TODO Detect start points in commit message
+                for branch in branches:
+                    if (branch.isstart()
+                            and branch.feature == self
+                            and (start is None or not (
+                                start.local and not branch.local))
+                            ):
+                        start = branch
+
+            #Get next commit
+            if len(commit.parents) > 1:
+                self.error = FeatureMergeError(self)
+                raise self.error
+
+            sha = a2b_hex(commit.parents[0])
+            commit = repo.commit(sha)
+
+        if not self.repo_cache.isindevref(sha):
+            self.error = FeatureStartError(self)
+            raise self.error
+
+        if start is not None:
+            self.start = start
+            #TODO Check parent feature
+            self.updated = True
+        else:
+            self.start = sha
+            self.updated = self.repo_cache.isindevref(sha)
 
     def delete(self):
         """ Set this branch to be deleted """
@@ -234,6 +272,7 @@ class Feature(object):
         self.branches = set((branch,))
         self.mainbranch = branch
         self.pushed = False
+        self.pushupdated = False
         self.repo_cache = repo_cache
         self.integrated = False
 
@@ -255,6 +294,7 @@ class Feature(object):
         branchlocal = None
         myremotebranch = None
         selectremote = None
+        self.pushed = False
         for branch in self.branches:
             verbose('Get %s' % branch)
             if not branch.local and branch.featuser == _MYREPO:
@@ -287,6 +327,8 @@ class Feature(object):
 
         if branchlocal is not None:
             self.mainbranch = branchlocal
+            if self.pushed:
+                self.pushupdated = (branchlocal.commit == myremotebranch.commit)
         else:
             self.mainbranch = selectremote
 

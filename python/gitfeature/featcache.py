@@ -560,10 +560,10 @@ class RepoCache(object):
             if len(nameparts) > 1 and nameparts[-2] in _featstates:
                 count += 1
                 sha = a2b_hex(repo.ref('refs/heads/%s' % ref))
-                if self.branches.has_key(ref):
+                try:
                     if sha != self.branches[ref].commit.sha or all_check:
                         changed.append((ref, sha, True))
-                else:
+                except KeyError:
                     created.append((ref, sha, True))
 
         #TODO Improve : only do this if some fetch or pull were performed
@@ -572,10 +572,10 @@ class RepoCache(object):
             if len(nameparts) > 1 and nameparts[-2] in _featstates:
                 count += 1
                 sha = a2b_hex(repo.ref('refs/remotes/%s' % ref))
-                if self.branches.has_key(ref):
+                try:
                     if sha != self.branches[ref].commit.sha or all_check:
                         changed.append((ref, sha, False))
-                else:
+                except KeyError:
                     created.append((ref, sha, False))
 
         branchlist = []
@@ -622,7 +622,7 @@ class RepoCache(object):
         verbose('Save...')
         self._save_cache()
 
-    def listfeat(self, local = None, featuser = None, active = True):
+    def listfeat(self, local = None, featuser = None, integrated = False):
         listout = []
         for feature in self.features.itervalues():
             hide = False
@@ -632,7 +632,7 @@ class RepoCache(object):
             if featuser is not None and not feature.hasuser(featuser):
                 hide = True
 
-            if active and feature.integrated:
+            if (not integrated) and feature.integrated:
                 hide = True
 
             if not hide:

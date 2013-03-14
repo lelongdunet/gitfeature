@@ -147,7 +147,7 @@ class Branch(object):
         self.feature = repo_cache.featupdate(featname, self)
         self.start = None
         self.time = None
-        self.updated = None
+        self.updated = False
         self.parent = None
         self.trash = []     # List of old commits to delete
         self.deleted = False
@@ -229,7 +229,7 @@ class Branch(object):
             self.updated = True
         else:
             self.start = sha
-            self.updated = self.repo_cache.isindevref(sha)
+            self.updated = self.repo_cache.isatdevref(sha)
 
     def delete(self):
         """ Set this branch to be deleted """
@@ -239,6 +239,9 @@ class Branch(object):
     def state(self):
         """ Return current state of this branch """
         return _featstates[self._stateid]
+
+    def samestate(self, branch):
+        return self._stateid == branch._stateid
 
     def __str__(self):
         return self.name
@@ -327,8 +330,9 @@ class Feature(object):
 
         if branchlocal is not None:
             self.mainbranch = branchlocal
-            if self.pushed:
-                self.pushupdated = (branchlocal.commit == myremotebranch.commit)
+            self.pushupdated = (self.pushed
+                    and branchlocal.commit == myremotebranch.commit
+                    and branchlocal.samestate(myremotebranch))
         else:
             self.mainbranch = selectremote
 

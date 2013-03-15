@@ -20,7 +20,8 @@ def load_cache():
 
 
 #States are in priority order
-_featstates = ('start', 'tmp', 'save', 'draft', 'final')
+_featstates = ('start', 'tmp', 'save', 'draft', 'final', 'archive')
+_activestates = (3, 4)
 
 def verbose(string):
     print string
@@ -150,11 +151,14 @@ class Branch(object):
         self.updated = False
         self.parent = None
         self.trash = []     # List of old commits to delete
-        self.deleted = False
 
     def isstart(self):
         """ Return True if this is a start point branch """
         return self._stateid == 0
+
+    def isactive(self):
+        """ Return True if this is an active branch to work on """
+        return self._stateid in _activestates
 
     def isfinal(self):
         """ Return True if this is a final branch """

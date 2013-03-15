@@ -456,8 +456,8 @@ class _CommitStore(object):
                 verbose('New feature integration detected : %s' % tag)
                 self.integrated[tag] = sha
 
-        del(self.newcommits)
-        del(self.repo)
+        del self.newcommits
+        del self.repo
 
     def __str__(self):
         return '\n'.join(['%s : %s' % (count, b2a_hex(sha))
@@ -532,7 +532,7 @@ class RepoCache(object):
             f.close()
             pickle_file = join_file(_GITDIR, 'featstore')
             cPickle.dump(self.commitstore, open(pickle_file, 'wb', -1))
-            del(self.commitstore)
+            del self.commitstore
         else:
             print 'No save commitstore'
 

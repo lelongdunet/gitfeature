@@ -1,9 +1,71 @@
 from featcache import load_cache, NotFoundFeature
 
+def argdict(allargs, argin):
+    outdict = {}
+    for arg in argin:
+        try:
+            argname, argval = arg.split('=')
+        except ValueError:
+            argname = arg
+            argval = None
+
+        try:
+            argtype = allargs[argname]
+        except KeyError:
+            raise NameError('Unsupported argument %s' % argname)
+
+        if argval is None:
+            if argtype == bool:
+                argval = True
+            else:
+                argval = argtype('')
+        else:
+            argval = argtype(argval)
+        outdict[argname] = argval
+
+    return outdict
+
+def featstat(repo_cache, markpush = 'ox ', markupdate = '* ', **args):
+    listout = []
+    for feat in repo_cache.listfeat(**args):
+        if (not feat.mainbranch.local) or feat.pushupdated:
+            pushed = markpush[2]
+        elif feat.pushed:
+            pushed = markpush[1]
+        else:
+            pushed = markpush[0]
+
+        if feat.mainbranch.updated:
+            updated = markupdate[1]
+        else:
+            updated = markupdate[0]
+
+        listout.append('%s %s %s' % (pushed, updated, feat.mainbranch))
+    return listout
+
+def featlist(repo_cache, **args):
+    lines = []
+    for feat in repo_cache.listfeat(**args):
+        lines.append(str(feat.mainbranch))
+    return lines
+
+listfunc_dict = {
+        'featlist' : featlist,
+        'featstat' : featstat
+        }
+
 def process(argv, repo_cache):
+    listoptargs = {
+            'integrated' : bool,
+            'featuser' : str,
+            'state' : str,
+            'sort' : str,
+            'local' : bool,
+            'markpush' : str
+            }
     if argv[0] == 'sync':
         repo_cache.sync()
-        return ''
+        return None
     elif argv[0] == 'featdetail':
         lines = []
         for f in repo_cache.features.itervalues():
@@ -12,11 +74,9 @@ def process(argv, repo_cache):
         return '\n'.join(lines)
         #l=[f for f in repo_cache.features.itervalues() if f.mainbranch is None]
 
-    elif argv[0] == 'featlist':
-        lines = []
-        for feat in repo_cache.listfeat():
-            lines.append(str(feat))
-        return '\n'.join(lines)
+    elif listfunc_dict.has_key(argv[0]):
+        func = listfunc_dict[argv[0]]
+        return '\n'.join(func(repo_cache, **argdict(listoptargs, argv[1:]) ))
     elif hasattr(repo_cache, 'get_%s' % argv[0]):
         func = getattr(repo_cache, 'get_%s' % argv[0])
         try:
@@ -35,13 +95,18 @@ if __name__ == '__main__':
         list_out = []
         for cmd in argv[2:]:
             try:
-                var, cmd = cmd.split('=', 1)
-            except:
+                var, cmdlist = cmd.split('=', 1)
+                if not var.isalnum():
+                    raise ValueError
+                cmd = cmdlist
+            except ValueError:
                 var = None
             sub_argv = cmd.split(';')
             out = process(sub_argv, repo_cache)
             if var is not None:
                 list_out.append("%s='%s'" % (var, out))
+            elif out is not None:
+                list_out.append(out)
 
         print '\n'.join(list_out)
     else:

@@ -657,8 +657,14 @@ class RepoCache(object):
         verbose('Save...')
         self._save_cache()
 
-    def listfeat(self, local = None, featuser = None, integrated = False):
+    def listfeat(self, local = None,
+            featuser = None,
+            integrated = False,
+            state = None):
         listout = []
+        if isinstance(state, str):
+            state = state.split(',')
+
         for feature in self.features.itervalues():
             hide = False
             if local is not None and feature.haslocal() != local:
@@ -667,15 +673,20 @@ class RepoCache(object):
             if featuser is not None and not feature.hasuser(featuser):
                 hide = True
 
+            if state is not None and not feature.mainbranch.state() in state:
+                hide = True
+
             if (not integrated) and feature.integrated:
                 hide = True
 
             if not hide:
-                listout.append(feature.mainbranch)
+                listout.append(feature)
 
         return listout
 
+
     def get_feature(self, featname):
+        """ Retrieve a feature object from its name """
         featname = basename(featname)
         if not self.features.has_key(featname):
             raise NotFoundFeature

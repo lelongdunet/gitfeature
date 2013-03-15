@@ -102,6 +102,10 @@ class Commit(object):
                 self.heads.remove(branch)
             except ValueError:
                 pass
+            if len(self.heads) == 0 and self.branch is None:
+                del self.repo_cache.commits[self.sha]
+        elif self.branch is None:
+            del self.repo_cache.commits[self.sha]
 
     def __str__(self):
         return b2a_hex(self.sha)
@@ -237,8 +241,9 @@ class Branch(object):
 
     def delete(self):
         """ Set this branch to be deleted """
-        self.deleted = True
         self.feature.delbranch(self)
+        self.commit.delbranch(self)
+        del self.repo_cache.branches[self.name]
 
     def state(self):
         """ Return current state of this branch """
@@ -297,6 +302,11 @@ class Feature(object):
 
     def update(self):
         """ Update the feature data by reading the list of branches """
+        if len(self.branches) == 0:
+            verbose("Feature %s totally deleted" % self.name)
+            del self.repo_cache.features[self.name]
+            return None
+
         stateid = 0
         branchlocal = None
         myremotebranch = None
@@ -487,7 +497,24 @@ class RepoCache(object):
 
     def _cleandeleted(self, repo):
         """ Check branches that must be removed from branches """
-        return []
+        branchlist = []
+        for branch in self.branches.itervalues():
+            if not branch.local:
+                refname = 'refs/remotes/%s' % branch
+            else:
+                refname = 'refs/heads/%s' % branch
+            try:
+                repo.ref(refname)
+            except KeyError:
+                branchlist.append(branch)
+
+        featlist = []
+        for branch in branchlist:
+            verbose('delete branch %s' % branch)
+            featlist.append(branch.feature)
+            branch.delete()
+
+        return featlist
 
     def _load_commitstore(self):
         if not hasattr(self, 'commitstore') or self.commitstore is None:

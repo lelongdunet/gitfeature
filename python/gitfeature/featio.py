@@ -44,10 +44,7 @@ def featstat(repo_cache, markpush = 'ox ', markupdate = '* ', **args):
     return listout
 
 def featlist(repo_cache, **args):
-    lines = []
-    for feat in repo_cache.listfeat(**args):
-        lines.append(str(feat.mainbranch))
-    return lines
+    return map(str, repo_cache.listfeat(**args))
 
 listfunc_dict = {
         'featlist' : featlist,
@@ -60,6 +57,7 @@ def process(argv, repo_cache):
             'featuser' : str,
             'state' : str,
             'sort' : str,
+            'reverse' : bool,
             'local' : bool,
             'markpush' : str
             }

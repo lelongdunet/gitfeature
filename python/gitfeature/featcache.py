@@ -22,6 +22,11 @@ def load_cache():
 #States are in priority order
 _featstates = ('start', 'tmp', 'save', 'draft', 'final', 'archive')
 _activestates = (3, 4)
+_featsort = {
+        'name' : lambda feature: feature.name,
+        'fullname' : lambda feature: feature.mainbranch.name,
+        'time' : lambda feature: feature.mainbranch.time
+        }
 
 def verbose(string):
     print string
@@ -660,7 +665,9 @@ class RepoCache(object):
     def listfeat(self, local = None,
             featuser = None,
             integrated = False,
-            state = None):
+            state = None,
+            sort = None,
+            reverse = False):
         listout = []
         if isinstance(state, str):
             state = state.split(',')
@@ -682,6 +689,8 @@ class RepoCache(object):
             if not hide:
                 listout.append(feature)
 
+        if sort is not None and _featsort.has_key(sort):
+            listout.sort(key=_featsort[sort], reverse = reverse)
         return listout
 
 

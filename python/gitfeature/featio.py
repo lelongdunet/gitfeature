@@ -105,6 +105,8 @@ def process(argv, repo_cache):
             return str(func(argv[1]))
         except NotFoundFeature:
             exit(1)
+    else:
+        return 'Unknown command %s' % argv[0]
 
     return ''
 

@@ -1,4 +1,5 @@
 from featcache import load_cache, NotFoundFeature
+from itertools import imap, chain
 
 def argdict(allargs, argin):
     outdict = {}
@@ -26,10 +27,8 @@ def argdict(allargs, argin):
     return outdict
 
 def featbranches(repo_cache, **args):
-    lines = []
-    for feat in repo_cache.listfeat(**args):
-        lines.extend(map(str, feat.heads()))
-    return lines
+    featheads = lambda feature: feature.heads()
+    return imap(str, chain(*imap(featheads, repo_cache.listfeat(**args))))
 
 def featdetail(repo_cache, markpush = 'ox ', markupdate = '* ', **args):
     lines = []
@@ -41,10 +40,7 @@ def featdetail(repo_cache, markpush = 'ox ', markupdate = '* ', **args):
         else:
             pushed = markpush[0]
 
-        if feat.mainbranch.updated:
-            updated = markupdate[1]
-        else:
-            updated = markupdate[0]
+        updated = markupdate[1] if feat.mainbranch.updated else markupdate[0]
 
         yield ('%d:%s:%s:%s:%d' % (
             feat.mainbranch.local,
@@ -65,16 +61,12 @@ def featstat(repo_cache, markpush = 'ox ', markupdate = '* ', **args):
         else:
             pushed = markpush[0]
 
-        if feat.mainbranch.updated:
-            updated = markupdate[1]
-        else:
-            updated = markupdate[0]
+        updated = markupdate[1] if feat.mainbranch.updated else markupdate[0]
 
-        listout.append('%s %s %s' % (pushed, updated, feat.mainbranch))
-    return listout
+        yield ('%s %s %s' % (pushed, updated, feat.mainbranch))
 
 def featlist(repo_cache, **args):
-    return map(str, repo_cache.listfeat(**args))
+    return imap(str, repo_cache.listfeat(**args))
 
 listfunc_dict = {
         'featlist' : featlist,

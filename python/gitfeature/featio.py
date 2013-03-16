@@ -25,6 +25,36 @@ def argdict(allargs, argin):
 
     return outdict
 
+def featbranches(repo_cache, **args):
+    lines = []
+    for feat in repo_cache.listfeat(**args):
+        lines.extend(map(str, feat.heads()))
+    return lines
+
+def featdetail(repo_cache, markpush = 'ox ', markupdate = '* ', **args):
+    lines = []
+    for feat in repo_cache.listfeat(**args):
+        if (not feat.mainbranch.local) or feat.pushupdated:
+            pushed = markpush[2]
+        elif feat.pushed:
+            pushed = markpush[1]
+        else:
+            pushed = markpush[0]
+
+        if feat.mainbranch.updated:
+            updated = markupdate[1]
+        else:
+            updated = markupdate[0]
+
+        yield ('%d:%s:%s:%s:%d' % (
+            feat.mainbranch.local,
+            updated,
+            pushed,
+            feat.mainbranch,
+            feat.mainbranch.time
+            ))
+
+
 def featstat(repo_cache, markpush = 'ox ', markupdate = '* ', **args):
     listout = []
     for feat in repo_cache.listfeat(**args):
@@ -48,7 +78,9 @@ def featlist(repo_cache, **args):
 
 listfunc_dict = {
         'featlist' : featlist,
-        'featstat' : featstat
+        'featstat' : featstat,
+        'featdetail' : featdetail,
+        'featbranches' : featbranches
         }
 
 def process(argv, repo_cache):
@@ -64,7 +96,7 @@ def process(argv, repo_cache):
     if argv[0] == 'sync':
         repo_cache.sync()
         return None
-    elif argv[0] == 'featdetail':
+    elif argv[0] == '_featdetail':
         lines = []
         for f in repo_cache.features.itervalues():
             lines.append('%r' % f)

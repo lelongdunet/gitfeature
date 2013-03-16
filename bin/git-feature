@@ -1183,8 +1183,20 @@ elif [ "$DO" == 'm' ]; then
     then
         export NEWSTARTPOINT=$MOVETO
     fi
-    echo git rebase --onto $MOVETO $STARTPOINT $FEATUREBRANCH
-    git rebase --onto $MOVETO $STARTPOINT $FEATUREBRANCH
+    SHAFEAT=$(git rev-parse $FEATUREBRANCH)
+    STARTPOINT="$(git rev-parse "$STARTPOINT")"
+    if [ "$SHAFEAT" == "$STARTPOINT" ]; then
+        if git show-ref $FEATURESTART &> /dev/null; then
+            git branch -D "$FEATURESTART"
+        elif [ "$(git rev-list --count ^$DEVREF $MOVETO)" != "0" ]; then
+            git branch -f "$FEATURESTART" "$MOVETO"
+        fi
+        git checkout "$FEATUREBRANCH"
+        git reset --hard "$MOVETO"
+    else
+        echo git rebase --onto $MOVETO $STARTPOINT $FEATUREBRANCH
+        git rebase --onto $MOVETO $STARTPOINT $FEATUREBRANCH
+    fi
     exit
 
 elif [ "$DO" == 'r' ]; then

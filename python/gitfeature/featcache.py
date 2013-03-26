@@ -513,13 +513,13 @@ class RepoCache(object):
             except KeyError:
                 branchlist.append(branch)
 
-        featlist = []
+        modfeatset = set()
         for branch in branchlist:
             verbose('delete branch %s' % branch)
-            featlist.append(branch.feature)
+            modfeatset.add(branch.feature)
             branch.delete()
 
-        return featlist
+        return modfeatset
 
     def _load_commitstore(self):
         if not hasattr(self, 'commitstore') or self.commitstore is None:
@@ -618,15 +618,15 @@ class RepoCache(object):
                 except KeyError:
                     created.append((ref, sha, False))
 
-        branchlist = []
-        featlist = []
+        modbranchset = set()
+        modfeatset = set()
 
         #Check deleted branches (except when new ones are detected)
-        if len(created) == 0 and count < len(self.branches):
-            featlist = self._cleandeleted(repo)
+        if (count - len(created)) < len(self.branches):
+            modfeatset = self._cleandeleted(repo)
 
         #Nothing more to do if there are no created nor changed branches
-        if len(created) == 0 and len(changed) == 0 and len(featlist) == 0:
+        if len(created) == 0 and len(changed) == 0 and len(modfeatset) == 0:
             return
 
         #Create new branch object and set heads (just in commits)
@@ -634,20 +634,18 @@ class RepoCache(object):
             branchname, sha, local = branch_data
             branch = Branch(self, branchname, local)
             self.sethead(sha, branch)
-            branchlist.append((branch, sha))
-            if not branch.feature in featlist:
-                featlist.append(branch.feature)
+            modbranchset.add((branch, sha))
+            modfeatset.add(branch.feature)
 
         for branch_data in changed:
             branchname, sha, local = branch_data
             branch = self.branches[branchname]
             self.sethead(sha, branch)
-            branchlist.append((branch, sha))
-            if not branch.feature in featlist:
-                featlist.append(branch.feature)
+            modbranchset.add((branch, sha))
+            modfeatset.add(branch.feature)
 
         #Update all commit datas related to branches (use heads previously set)
-        for branch_data in branchlist:
+        for branch_data in modbranchset:
             branch = branch_data[0]
             sha = branch_data[1]
             try:
@@ -655,7 +653,7 @@ class RepoCache(object):
             except BranchError as e:
                 verbose('Error on branch %s : %s' % (basename(str(branch)), e))
 
-        for feature in featlist:
+        for feature in modfeatset:
             feature.update()
 
         #Finally save newly updated cache

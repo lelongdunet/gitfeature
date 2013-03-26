@@ -3,6 +3,7 @@ from binascii import a2b_hex, b2a_hex
 from posixpath import join, basename, dirname
 from os.path import exists, join as join_file
 
+_CACHEVER = 1
 
 _GITDIR = '.git'
 _GITROOT = '.'
@@ -346,10 +347,12 @@ class Feature(object):
         verbose('> %s branchlocal : %s' % (self, branchlocal))
         if self.repo_cache.check_integrated(self.name):
             self.integrated = True
+            self.updated = True
+            self.pushupdated = True
 
         if branchlocal is not None:
             self.mainbranch = branchlocal
-            self.pushupdated = (self.pushed
+            self.pushupdated = self.integrated or (self.pushed
                     and branchlocal.commit == myremotebranch.commit
                     and branchlocal.samestate(myremotebranch))
         else:
@@ -476,6 +479,7 @@ class RepoCache(object):
         self.branches = {}
         self.featusers = []
         self.devrefs = {}
+        self.version = _CACHEVER
 
     def featupdate(self, featname, branch):
         if self.features.has_key(featname):
@@ -569,6 +573,9 @@ class RepoCache(object):
         from dulwich.repo import Repo
 
         repo = Repo(_GITROOT)
+
+        if not hasattr(self, 'version') or self.version != _CACHEVER:
+            self.__init__()
 
         #TODO Manage multiple devref
         devref = _DEVREF

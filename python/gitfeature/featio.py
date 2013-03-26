@@ -54,7 +54,7 @@ def featdetail(repo_cache, markpush = 'ox ', markupdate = '* ', **args):
 def featstat(repo_cache, markpush = 'ox ', markupdate = '* ', **args):
     listout = []
     for feat in repo_cache.listfeat(**args):
-        if (not feat.mainbranch.local) or feat.pushupdated:
+        if (not feat.mainbranch.local) or feat.integrated or feat.pushupdated:
             pushed = markpush[2]
         elif feat.pushed:
             pushed = markpush[1]
@@ -62,6 +62,9 @@ def featstat(repo_cache, markpush = 'ox ', markupdate = '* ', **args):
             pushed = markpush[0]
 
         updated = markupdate[1] if feat.mainbranch.updated else markupdate[0]
+        if feat.error is not None or feat.mainbranch.error is not None:
+            updated = '!'
+            pushed = '!'
 
         yield ('%s %s %s' % (pushed, updated, feat.mainbranch))
 

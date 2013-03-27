@@ -528,7 +528,7 @@ class RepoCache(object):
     def _load_commitstore(self):
         if not hasattr(self, 'commitstore') or self.commitstore is None:
             pickle_file = join_file(_GITDIR, 'featstore')
-            if exists(pickle_file):
+            if len(self.devrefs) > 0 and exists(pickle_file):
                 self.commitstore = cPickle.load(open(pickle_file))
             else:
                 self.commitstore = _CommitStore()

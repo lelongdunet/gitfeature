@@ -560,6 +560,7 @@ class RepoCache(object):
         return self.commitstore.commits[sha]
 
     def isatdevref(self, sha):
+        self._load_commitstore()
         return sha in self.commitstore.devrefs.values()
 
     def isindevref(self, sha):

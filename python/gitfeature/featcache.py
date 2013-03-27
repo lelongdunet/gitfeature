@@ -444,7 +444,7 @@ class _CommitStore(object):
             if tmp > max_index:
                 max_index = tmp
 
-            self.devrefs[refhead] = sha
+            self.devrefs[refhead] = a2b_hex(sha)
 
         #Now reverse commit count
         for sha, count in self.newcommits.iteritems():

@@ -3,7 +3,7 @@ from binascii import a2b_hex, b2a_hex
 from posixpath import join, basename, dirname
 from os.path import exists, join as join_file
 
-_CACHEVER = 1
+_CACHEVER = 2
 
 _GITDIR = '.git'
 _GITROOT = '.'
@@ -370,10 +370,15 @@ class Feature(object):
 
         return False
 
-    def heads(self):
+    def heads(self, updated = False):
         """ Return the list of active branches for this feature """
-        return [branch for branch in self.branches
-                if branch._stateid == self.mainbranch._stateid]
+        if not updated:
+            return [branch for branch in self.branches
+                    if branch._stateid == self.mainbranch._stateid]
+        else:
+            return [branch for branch in self.branches
+                    if (branch._stateid == self.mainbranch._stateid
+                        and branch.updated)]
 
     def __str__(self):
         return self.name
@@ -671,6 +676,7 @@ class RepoCache(object):
     def listfeat(self, local = None,
             featuser = None,
             integrated = False,
+            updated = False,
             state = None,
             sort = None,
             reverse = False):
@@ -687,6 +693,9 @@ class RepoCache(object):
                 hide = True
 
             if state is not None and not feature.mainbranch.state() in state:
+                hide = True
+
+            if updated and not feature.mainbranch.updated:
                 hide = True
 
             if (not integrated) and feature.integrated:

@@ -26,8 +26,11 @@ def argdict(allargs, argin):
 
     return outdict
 
-def featbranches(repo_cache, **args):
-    featheads = lambda feature: feature.heads()
+def featbranches(repo_cache, updated = False, **args):
+    if not updated:
+        featheads = lambda feature: feature.heads()
+    else:
+        featheads = lambda feature: feature.heads(True)
     return imap(str, chain(*imap(featheads, repo_cache.listfeat(**args))))
 
 def featdetail(repo_cache, markpush = 'ox ', markupdate = '* ', **args):
@@ -86,6 +89,7 @@ def process(argv, repo_cache):
             'sort' : str,
             'reverse' : bool,
             'local' : bool,
+            'updated' : bool,
             'markpush' : str
             }
     if argv[0] == 'sync':

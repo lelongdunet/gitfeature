@@ -698,8 +698,7 @@ class RepoCache(object):
             if updated and not feature.mainbranch.updated:
                 hide = True
 
-            if (not integrated) and feature.integrated:
-                hide = True
+            hide |= integrated ^ feature.integrated
 
             if not hide:
                 listout.append(feature)

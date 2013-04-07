@@ -74,11 +74,16 @@ def featstat(repo_cache, markpush = 'ox ', markupdate = '* ', **args):
 def featlist(repo_cache, **args):
     return imap(str, repo_cache.listfeat(**args))
 
+def featmainbranch(repo_cache, **args):
+    strmainbranch = lambda feature: str(feature.mainbranch)
+    return imap(strmainbranch, repo_cache.listfeat(**args))
+
 listfunc_dict = {
         'featlist' : featlist,
         'featstat' : featstat,
         'featdetail' : featdetail,
-        'featbranches' : featbranches
+        'featbranches' : featbranches,
+        'featmainbranch' : featmainbranch
         }
 
 def process(argv, repo_cache):

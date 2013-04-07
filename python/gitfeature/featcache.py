@@ -686,18 +686,10 @@ class RepoCache(object):
 
         for feature in self.features.itervalues():
             hide = False
-            if local is not None and feature.haslocal() != local:
-                hide = True
-
-            if featuser is not None and not feature.hasuser(featuser):
-                hide = True
-
-            if state is not None and not feature.mainbranch.state() in state:
-                hide = True
-
-            if updated and not feature.mainbranch.updated:
-                hide = True
-
+            hide |= local is not None and feature.haslocal() != local
+            hide |= featuser is not None and not feature.hasuser(featuser)
+            hide |= state is not None and not feature.mainbranch.state() in state
+            hide |= updated and not feature.mainbranch.updated
             hide |= integrated ^ feature.integrated
 
             if not hide:

@@ -3,7 +3,7 @@ from binascii import a2b_hex, b2a_hex
 from posixpath import join, basename, dirname
 from os.path import exists, join as join_file
 
-_CACHEVER = 2
+_CACHEVER = 3
 
 _GITDIR = '.git'
 _GITROOT = '.'
@@ -347,7 +347,6 @@ class Feature(object):
         verbose('> %s branchlocal : %s' % (self, branchlocal))
         if self.repo_cache.check_integrated(self.name):
             self.integrated = True
-            self.updated = True
             self.pushupdated = True
 
         if branchlocal is not None:
@@ -361,6 +360,11 @@ class Feature(object):
     def haslocal(self):
         """ Return True if there is a local branch for this feature """
         return self.mainbranch.local
+
+    def updated(self):
+        if not self.integrated:
+            return self.mainbranch.updated
+        return True
 
     def hasuser(self, featuser):
         """ Return True if specified user has a branch for this feature """
@@ -689,7 +693,7 @@ class RepoCache(object):
             hide |= local is not None and feature.haslocal() != local
             hide |= featuser is not None and not feature.hasuser(featuser)
             hide |= state is not None and not feature.mainbranch.state() in state
-            hide |= updated and not feature.mainbranch.updated
+            hide |= updated and not feature.updated()
             hide |= integrated ^ feature.integrated
 
             if not hide:

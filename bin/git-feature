@@ -6,6 +6,7 @@
 
 
 PYPATH="$(dirname "$(readlink -f "$0")")"/../python
+CMDFEATCACHE="python $PYPATH/featmain.py"
 TMPFILE=/tmp/featuretmp.$USER
 HOOKRELPATH=../hooks
 VER="v0.1.06"
@@ -14,6 +15,9 @@ VER="v0.1.06"
 if ! GITDIR="$(git rev-parse --git-dir)"; then
     exit 1
 fi
+
+cd "$GITDIR/.."
+GITDIR=.git
 
 ################################################################################
 #   Manage colors (see http://wiki.bash-hackers.org/scripting/terminalcodes )
@@ -393,6 +397,9 @@ elif [[ -z "$EXPECTED" && -z "$OPTFEATARG" ]]; then
     echoerr "No feature name or branch provided!"
     exit 1
 fi
+
+## Synchronize featcache
+$CMDFEATCACHE
 
 ################################################################################
 #   Check and prepare environment
@@ -1012,20 +1019,14 @@ elif [ "$DO" == 'c' ]; then
 elif [ "$DO" == 'v' ]; then
     BRANCHLIST=""
     echo "Getting list of branch ..."
-    BRANCHLIST=$(list_locals)
     if [[ "$ALL" == 'y' || "$ARG" == all ]]; then
-        BRANCHLIST="$BRANCHLIST $(list_updated_remote)"
+        BRANCHLIST="$($CMDFEATCACHE featbranches state=draft,final)"
     elif [ -n "$ARG" ]; then
         REMOTENAME="$ARG"
-        BRANCHLIST="$(list_remotes $REMOTENAME)"
+        BRANCHLIST="$($CMDFEATCACHE featbranches state=draft,final featuser=$REMOTENAME)"
+    else
+        BRANCHLIST="$($CMDFEATCACHE featbranches state=draft,final local)"
     fi
-    BRANCHSELECT=''
-    for feat in $BRANCHLIST; do
-        if ! check_included $feat; then
-            BRANCHSELECT="$BRANCHSELECT$feat "
-        fi
-    done
-    BRANCHLIST=$BRANCHSELECT
 
     if [ "$FULL" == 'y' ]; then
         BRANCHLIST="$BRANCHLIST $DEVREF"
@@ -1041,77 +1042,27 @@ elif [ "$DO" == 'v' ]; then
 #List features
 elif [ "$DO" == 'l' ]; then
     #If ARG is not empty it is the remote name
-    if [ -z "$ARG" ]; then
-        FEATLIST=$(branch_list --list 'draft/*')
-        FEATPREFIX=''
+    if [ "$ALL" == 'y' ]; then
+        FILTER=''
+    elif [ -z "$ARG" ]; then
+        FILTER=';local'
     else
-        FEATLIST=$(branch_list -r --list $ARG'/draft/*')
-        FEATPREFIX=$ARG/
+        FILTER=";featuser=$ARG"
     fi
 
-    CURRENT=''
-    REMOTES=''
-    INCLUDED=''
-    FINALS=''
-
-    for feat in $FEATLIST; do
-        finalfeat=$(check_final $feat)
-        if [ -z "$finalfeat" ]; then
-            if ! check_included $feat; then
-                CURRENT="$CURRENT$feat "
-            else
-                INCLUDED="$INCLUDED$feat "
-            fi
-        elif ! git rev-parse $FEATPREFIX'final/'$(basename $feat) &> /dev/null; then
-            if ! check_included $feat; then
-                FINALS="$FINALS$finalfeat "
-            else
-                INCLUDED="$INCLUDED$feat "
-            fi
-        fi
-    done
-
-    if [ -z "$ARG" ]; then
-        FEATLIST=$(branch_list --list 'final/*')
-    else
-        FEATLIST=$(branch_list -r --list $ARG'/final/*')
-    fi
-
-    REMOTE=$(git config workflow.remote)
-
-    CURRENT=$CURRENT$HIGHLIGHT
-    CURRENT="$CURRENT$FINALS "
-    for feat in $FEATLIST; do
-        if ! check_included $feat; then
-            CURRENT="$CURRENT$feat "
-        else
-            INCLUDED="$INCLUDED$feat "
-        fi
-    done
-    CURRENT=$CURRENT$NORMAL
+    eval "$($CMDFEATCACHE parse \
+        "CURRENT=featstat;state=draft$FILTER" \
+        "FINALS=featstat;state=final$FILTER" \
+        "INCLUDED=featstat;integrated$FILTER")"
 
     echo "List local features"
     echo ""
     echo -e $TITLE"Included features"$NORMAL
-    for feat in $INCLUDED; do
-        echo -e "    $ERRCOL$feat$NORMAL"
-    done
+    echo -e "$ERRCOL$INCLUDED$NORMAL"
     echo ""
     echo -e $TITLE"Current features"$NORMAL
-    for feat in $CURRENT; do
-        REPOSTAT=" "
-        if [[ "$REVERSE" != 'y'
-            && -n "$(echo "$feat"|sed 's/\s*\\[^m]\+m\s*//g')"
-            && -z "$ARG" ]]; then
-
-            if ! REMOTESHA1=$(git rev-parse $REMOTE/$feat 2> /dev/null); then
-                REPOSTAT='o'
-            elif [ "$REMOTESHA1" != "$(git rev-parse $feat)" ]; then
-                REPOSTAT='+'
-            fi
-        fi
-        echo -e "$REPOSTAT   $feat"
-    done
+    echo -e "$CURRENT"
+    echo -e "$HIGHLIGHT$FINALS$NORMAL"
     echo ""
 
     exit 
@@ -1303,7 +1254,7 @@ elif [ "$DO" == 'T' ]; then
         source "$GITDIR/test_merge"
     fi
 
-    LIST="$(feat_list 'b')"
+    LIST="$($CMDFEATCACHE featmainbranch state=draft,final sort=time)"
     SELECTLIST=''
     for feat in $LIST; do
         FLAG=''
@@ -1314,10 +1265,8 @@ elif [ "$DO" == 'T' ]; then
             STAT=on
             FLAG=':(!!)'
         fi
-        COMMITDATE=$(git log -n1 --pretty=format:%ct $feat)
-        SELECTLIST="$SELECTLIST$COMMITDATE $feat $(basename $feat)$FLAG $STAT"'\n'
+        SELECTLIST=" $feat $(basename $feat)$FLAG $STAT $SELECTLIST"
     done
-    SELECTLIST=$(echo -e "$SELECTLIST"|sort -nr|sed 's/^\w*\s*//')
     if ! multiselect "$SELECTLIST" "Select features you want to merge in test branch"; then
         SELECTED=''
     else
@@ -1404,6 +1353,9 @@ elif [ "$DO" == 't' ]; then
 
     echoimportant 'start > '$(start_point $FEATUREBRANCH)
     echowarn "Do nothing ..."
+    pwd
+    echo "$GITDIR/"
+    readlink -f "$GITDIR"
     exit
 
 else

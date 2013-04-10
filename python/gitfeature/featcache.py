@@ -746,9 +746,16 @@ class RepoCache(object):
 
         return feature
 
+    def get_branch(self, branchname):
+        feat = self.get_feature(branchname)
+        try:
+            return self.branches[branchname]
+        except:
+            return feat.mainbranch
+
     def get_start(self, featname):
         """ Return SHA of the start point of the given feature """
-        return b2a_hex(self.get_feature(featname).mainbranch.get_start())
+        return b2a_hex(self.get_branch(featname).get_start())
 
     def get_branches(self, featname):
         """ Return list of branches of the given feature """
@@ -756,7 +763,7 @@ class RepoCache(object):
 
     def get_state(self, featname):
         """ Return current state of the given feature """
-        return self.get_feature(featname).mainbranch.state()
+        return self.get_branch(featname).state()
 
     def get_mainbranch(self, featname):
         """ Return the main working branch of the given feature """

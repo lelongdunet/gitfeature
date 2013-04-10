@@ -767,6 +767,29 @@ class RepoCache(object):
         """ Return current state of the given feature """
         return self.get_branch(featname).state()
 
+    def get_depend(self, featname):
+        """ Return the parent branch of the given branch or feature """
+        return self.get_branch(featname).depend
+
+    def get_related(self, branchname):
+        """ For debug purpose only """
+        return self.get_branch(branchname).relatedupdates()
+
+    def get_root(self, branchname):
+        """ Return root of the branch (commit which is in devel) """
+        return b2a_hex(self.get_branch(branchname).root)
+
+    def get_shortstate(self, featname):
+        feat = self.get_feature(featname)
+        if feat.integrated:
+            return ">I : feature already integrated"
+        elif not feat.mainbranch.local:
+            return ">R : remote feature"
+        elif feat.mainbranch.isfinal():
+            return ">F : feature being finalized"
+        else:
+            return ">D : draft feature"
+
     def get_mainbranch(self, featname):
         """ Return the main working branch of the given feature """
         return self.get_feature(featname).mainbranch

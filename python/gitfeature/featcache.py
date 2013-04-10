@@ -4,7 +4,7 @@ from posixpath import join, basename, dirname
 from os.path import exists, join as join_file
 from itertools import imap, chain
 
-_CACHEVER = 4
+_CACHEVER = 5
 
 _GITDIR = '.git'
 _GITROOT = '.'
@@ -160,6 +160,7 @@ class Branch(object):
         self.local = local
         self.feature = repo_cache.featupdate(featname, self)
         self.start = None
+        self.root = None
         self.time = None
         self.updated = False
         self.parent = None
@@ -266,6 +267,7 @@ class Branch(object):
         else:
             self.start = sha
             self.updated = self.repo_cache.isatdevref(sha)
+        self.root = sha
 
     def delete(self):
         """ Set this branch to be deleted """

@@ -2,8 +2,9 @@ import cPickle
 from binascii import a2b_hex, b2a_hex
 from posixpath import join, basename, dirname
 from os.path import exists, join as join_file
+from itertools import imap, chain
 
-_CACHEVER = 3
+_CACHEVER = 4
 
 _GITDIR = '.git'
 _GITROOT = '.'
@@ -154,6 +155,8 @@ class Branch(object):
         self.name = name
         self.commit = None
         self.error = None
+        self.depend = None
+        self.children = set()
         self.local = local
         self.feature = repo_cache.featupdate(featname, self)
         self.start = None
@@ -200,30 +203,45 @@ class Branch(object):
         if self.commit is not None:
             self.commit.unsethead(self)
 
-    def updatecommits(self, repo, sha):
+    def relatedupdates(self):
+        if self.isstart():
+            return self.children.union(self.feature.branches)
+        else:
+            return self.children
+
+    def updatecommits(self, repo):
         """ Update branch info using repo (called from sync) """
-        try:
-            self.commit = self.repo_cache.commits[sha]
-        except KeyError:
-            self.commit = Commit(self.repo_cache, sha, head = self)
-            self.repo_cache.commits[sha] = self.commit
+        if(hasattr(self, 'pending_sha')):
+            sha = self.pending_sha
+            del(self.pending_sha)
+
+            try:
+                self.commit = self.repo_cache.commits[sha]
+            except KeyError:
+                self.commit = Commit(self.repo_cache, sha, head = self)
+                self.repo_cache.commits[sha] = self.commit
+        else:
+            sha = self.commit.sha
 
         commit = repo.commit(sha)
         self.time = commit.commit_time
 
         #Walk until start point
         start = None
+        depend = None
         while not self.repo_cache.isindevref(sha):
             if self.repo_cache.commits.has_key(sha):
                 branches = self.repo_cache.commits[sha].heads
                 #TODO Detect start points in commit message
                 for branch in branches:
                     if (branch.isstart()
-                            and branch.feature == self
-                            and (start is None or not (
-                                start.local and not branch.local))
-                            ):
+                            and branch.feature == self.feature
+                            and start is None):
                         start = branch
+                    elif depend is None and branch.isactive():
+                        depend = branch
+
+                if start is None:   depend = None
 
             #Get next commit
             if len(commit.parents) > 1:
@@ -239,8 +257,12 @@ class Branch(object):
 
         if start is not None:
             self.start = start
-            #TODO Check parent feature
-            self.updated = True
+            if depend is not None:
+                self.updated = True
+                self.depend = depend
+                depend.children.add(self)
+            else:
+                self.updated = False
         else:
             self.start = sha
             self.updated = self.repo_cache.isatdevref(sha)
@@ -527,12 +549,14 @@ class RepoCache(object):
                 branchlist.append(branch)
 
         modfeatset = set()
+        modbranchset = set()
         for branch in branchlist:
             verbose('delete branch %s' % branch)
+            modbranchset.update(branch.relatedupdates())
             modfeatset.add(branch.feature)
             branch.delete()
 
-        return modfeatset
+        return modfeatset, modbranchset
 
     def _load_commitstore(self):
         if not hasattr(self, 'commitstore') or self.commitstore is None:
@@ -640,7 +664,7 @@ class RepoCache(object):
 
         #Check deleted branches (except when new ones are detected)
         if (count - len(created)) < len(self.branches):
-            modfeatset = self._cleandeleted(repo)
+            modfeatset, modbranchset = self._cleandeleted(repo)
 
         #Nothing more to do if there are no created nor changed branches
         if len(created) == 0 and len(changed) == 0 and len(modfeatset) == 0:
@@ -651,22 +675,27 @@ class RepoCache(object):
             branchname, sha, local = branch_data
             branch = Branch(self, branchname, local)
             self.sethead(sha, branch)
-            modbranchset.add((branch, sha))
+            #Pending sha is used in updatecommits()
+            branch.pending_sha = sha
+            modbranchset.add(branch)
+            modbranchset.update(branch.relatedupdates())
             modfeatset.add(branch.feature)
 
+        branchfeat = lambda branch:branch.feature
         for branch_data in changed:
             branchname, sha, local = branch_data
             branch = self.branches[branchname]
             self.sethead(sha, branch)
-            modbranchset.add((branch, sha))
+            #Pending sha is used in updatecommits()
+            branch.pending_sha = sha
+            modbranchset.add(branch)
+            modbranchset.update(branch.relatedupdates())
             modfeatset.add(branch.feature)
 
         #Update all commit datas related to branches (use heads previously set)
         for branch_data in modbranchset:
-            branch = branch_data[0]
-            sha = branch_data[1]
             try:
-                branch.updatecommits(repo, sha)
+                branch_data.updatecommits(repo)
             except BranchError as e:
                 verbose('Error on branch %s : %s' % (basename(str(branch)), e))
 

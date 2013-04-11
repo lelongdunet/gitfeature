@@ -54,6 +54,9 @@ class FeaturePushError(BranchError):
 class FeatureStartError(BranchError):
     pass
 
+class NotWorkingBranchError(BranchError):
+    pass
+
 class NotFoundFeature(Error):
     pass
 
@@ -328,6 +331,9 @@ class Branch(object):
 
     def samestate(self, branch):
         return self._stateid == branch._stateid
+
+    def ismaxstate(self):
+        return self.samestate(self.feature.mainbranch)
 
     def __str__(self):
         return self.name
@@ -848,6 +854,13 @@ class RepoCache(object):
     def get_root(self, branchname):
         """ Return root of the branch (commit which is in devel) """
         return b2a_hex(self.get_branch(branchname).root)
+
+    def get_isworkingbranch(self, branchname):
+        """ Check if the given branch is valid for working on """
+        branch = self.get_branch(branchname)
+        if branch.local and branch.ismaxstate():
+            return 'y'
+        raise NotWorkingBranchError
 
     def get_shortstate(self, featname):
         feat = self.get_feature(featname)

@@ -737,7 +737,6 @@ class RepoCache(object):
             modbranchset.update(branch.relatedupdates())
             modfeatset.add(branch.feature)
 
-        branchfeat = lambda branch:branch.feature
         for branch_data in changed:
             branchname, sha, local = branch_data
             branch = self.branches[branchname]

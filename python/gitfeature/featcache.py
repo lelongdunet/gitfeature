@@ -828,6 +828,16 @@ class RepoCache(object):
         """ Return the parent branch of the given branch or feature """
         return self.get_branch(featname).depend
 
+    def get_smartdepend(self, featname):
+        """ Return the real SHA on which to update the branch. """
+        #TODO Manage multiple devref
+        devref = self.devrefs[basename(_DEVREF)]
+        depend = self.get_branch(featname).depend
+        if depend is None or depend.feature.integrated:
+            return b2a_hex(devref)
+        else:
+            return b2a_hex(depend.commit.sha)
+
     def get_related(self, branchname):
         """ For debug purpose only """
         return self.get_branch(branchname).relatedupdates()

@@ -708,23 +708,6 @@ function push_feat()
     fi
 }
 
-function feat_stat()
-{
-    featbranch=$1
-    featname=$(basename $1)
-
-    if check_included $featbranch; then
-        echo ">I : feature already integrated"
-    elif [ -n "$(check_final $featbranch)" ]; then
-        echo ">F : feature being finalized"
-    elif ! git rev-parse draft/$featname &> /dev/null; then
-        echo ">R : remote feature"
-    else
-        echo ">D : draft feature"
-    fi
-
-}
-
 function feat_local_branches()
 {
     BRANCHES=''
@@ -844,7 +827,7 @@ elif [ "$DO" == 'files' ]; then
     exit
 
 elif [ "$DO" == 's' ]; then
-    feat_stat $FEATUREBRANCH
+    $CMDFEATCACHE shortstate $FEATUREBRANCH
     exit
 
 #Close the feature

@@ -373,7 +373,10 @@ class Feature(object):
             self.integrated = True
             self.pushupdated = True
 
-        if branchlocal is not None:
+        #Local branch has priority only if it the highest state
+        if (branchlocal is not None
+                and (selectremote is None
+                    or selectremote._stateid <= branchlocal._stateid)):
             self.mainbranch = branchlocal
             self.pushupdated = self.integrated or (self.pushed
                     and branchlocal.commit == myremotebranch.commit

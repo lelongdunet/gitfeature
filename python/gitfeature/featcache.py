@@ -408,6 +408,10 @@ class Feature(object):
                     if (branch._stateid == self.mainbranch._stateid
                         and branch.updated)]
 
+    def relatedupdates(self):
+        children = lambda branch: branch.children
+        return set().union(*imap(children, self.branches))
+
     def __str__(self):
         return self.name
 
@@ -774,6 +778,10 @@ class RepoCache(object):
     def get_related(self, branchname):
         """ For debug purpose only """
         return self.get_branch(branchname).relatedupdates()
+
+    def get_featrelated(self, featname):
+        """ For debug purpose only """
+        return self.get_feature(featname).relatedupdates()
 
     def get_root(self, branchname):
         """ Return root of the branch (commit which is in devel) """

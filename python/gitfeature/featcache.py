@@ -4,7 +4,7 @@ from posixpath import join, basename, dirname
 from os.path import exists, join as join_file
 from itertools import imap, chain
 
-_CACHEVER = 7
+_CACHEVER = 8
 
 _GITDIR = '.git'
 _GITROOT = '.'
@@ -140,7 +140,7 @@ class Branch(object):
         - local : True if this branch is local
         - stat : SHA or Branch instance of the related start point
         - time : Date of last modification of last commit
-        - updated : True if this branch is above its base
+        - uptodate : True if this branch is above its base
         - parent : NC
         - delete : This branch is pending for deletion
     Other informations can be get through functions
@@ -173,7 +173,7 @@ class Branch(object):
         self.start = None
         self.root = None
         self.time = None
-        self.updated = False
+        self.uptodate = False
         self.parent = None
         self.trash = []     # List of old commits to delete
 
@@ -306,9 +306,9 @@ class Branch(object):
         #Branch is up to date if its start corresponds to its dependency
         if self.depend is None or self.depend.feature.integrated:
             #TODO in multiple devref check devref is coherent when integrated
-            self.updated = self.repo_cache.isatdevref(self.start)
+            self.uptodate = self.repo_cache.isatdevref(self.start)
         else:
-            self.updated = (get_sha(self.depend) == get_sha(self.start))
+            self.uptodate = (get_sha(self.depend) == get_sha(self.start))
 
     def delete(self):
         """ Set this branch to be deleted """
@@ -347,7 +347,7 @@ class Feature(object):
         - name : The name of the branch (this is also given by str())
         - error : if not None, this branch is in a bad state
         - pushed : True if the local branch of this feature has been pushed
-        - pushupdated : True if there are no changes since last push
+        - pushuptodate : True if there are no changes since last push
         - integrated : True if this feature is integrated in one DEVREF
     Other informations can be get through functions
     """
@@ -361,7 +361,7 @@ class Feature(object):
         self.branches = set((branch,))
         self.mainbranch = branch
         self.pushed = False
-        self.pushupdated = False
+        self.pushuptodate = False
         self.repo_cache = repo_cache
         self.integrated = False
 
@@ -418,14 +418,14 @@ class Feature(object):
         verbose('> %s branchlocal : %s' % (self, branchlocal))
         if self.repo_cache.check_integrated(self.name):
             self.integrated = True
-            self.pushupdated = True
+            self.pushuptodate = True
 
         #Local branch has priority only if it the highest state
         if (branchlocal is not None
                 and (selectremote is None
                     or selectremote._stateid <= branchlocal._stateid)):
             self.mainbranch = branchlocal
-            self.pushupdated = self.integrated or (self.pushed
+            self.pushuptodate = self.integrated or (self.pushed
                     and branchlocal.commit == myremotebranch.commit
                     and branchlocal.samestate(myremotebranch))
         else:
@@ -435,9 +435,9 @@ class Feature(object):
         """ Return True if there is a local branch for this feature """
         return self.mainbranch.local
 
-    def updated(self):
+    def uptodate(self):
         if not self.integrated:
-            return self.mainbranch.updated
+            return self.mainbranch.uptodate
         return True
 
     def hasuser(self, featuser):
@@ -448,15 +448,15 @@ class Feature(object):
 
         return False
 
-    def heads(self, updated = False):
+    def heads(self, uptodate = False):
         """ Return the list of active branches for this feature """
-        if not updated:
+        if not uptodate:
             return [branch for branch in self.branches
                     if branch._stateid == self.mainbranch._stateid]
         else:
             return [branch for branch in self.branches
                     if (branch._stateid == self.mainbranch._stateid
-                        and branch.updated)]
+                        and branch.uptodate)]
 
     def relatedupdates(self):
         children = lambda branch: branch.children
@@ -767,7 +767,7 @@ class RepoCache(object):
     def listfeat(self, local = None,
             featuser = None,
             integrated = False,
-            updated = False,
+            uptodate = False,
             state = None,
             sort = None,
             reverse = False):
@@ -780,7 +780,7 @@ class RepoCache(object):
             hide |= local is not None and feature.haslocal() != local
             hide |= featuser is not None and not feature.hasuser(featuser)
             hide |= state is not None and not feature.mainbranch.state() in state
-            hide |= updated and not feature.updated()
+            hide |= uptodate and not feature.uptodate()
             hide |= integrated ^ feature.integrated
 
             if not hide:

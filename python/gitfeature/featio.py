@@ -26,8 +26,8 @@ def argdict(allargs, argin):
 
     return outdict
 
-def featbranches(repo_cache, updated = False, **args):
-    if not updated:
+def featbranches(repo_cache, uptodate = False, **args):
+    if not uptodate:
         featheads = lambda feature: feature.heads()
     else:
         featheads = lambda feature: feature.heads(True)
@@ -36,18 +36,18 @@ def featbranches(repo_cache, updated = False, **args):
 def featdetail(repo_cache, markpush = 'ox ', markupdate = '* ', **args):
     lines = []
     for feat in repo_cache.listfeat(**args):
-        if (not feat.mainbranch.local) or feat.pushupdated:
+        if (not feat.mainbranch.local) or feat.pushuptodate:
             pushed = markpush[2]
         elif feat.pushed:
             pushed = markpush[1]
         else:
             pushed = markpush[0]
 
-        updated = markupdate[1] if feat.updated() else markupdate[0]
+        uptodate = markupdate[1] if feat.uptodate() else markupdate[0]
 
         yield ('%d:%s:%s:%s:%d' % (
             feat.mainbranch.local,
-            updated,
+            uptodate,
             pushed,
             feat.mainbranch,
             feat.mainbranch.time
@@ -57,19 +57,19 @@ def featdetail(repo_cache, markpush = 'ox ', markupdate = '* ', **args):
 def featstat(repo_cache, markpush = 'ox ', markupdate = '* ', **args):
     listout = []
     for feat in repo_cache.listfeat(**args):
-        if (not feat.mainbranch.local) or feat.integrated or feat.pushupdated:
+        if (not feat.mainbranch.local) or feat.integrated or feat.pushuptodate:
             pushed = markpush[2]
         elif feat.pushed:
             pushed = markpush[1]
         else:
             pushed = markpush[0]
 
-        updated = markupdate[1] if feat.updated() else markupdate[0]
+        uptodate = markupdate[1] if feat.uptodate() else markupdate[0]
         if feat.error is not None or feat.mainbranch.error is not None:
-            updated = '!'
+            uptodate = '!'
             pushed = '!'
 
-        yield ('%s %s %s' % (pushed, updated, feat.mainbranch))
+        yield ('%s %s %s' % (pushed, uptodate, feat.mainbranch))
 
 def featlist(repo_cache, **args):
     return imap(str, repo_cache.listfeat(**args))
@@ -94,7 +94,7 @@ def process(argv, repo_cache):
             'sort' : str,
             'reverse' : bool,
             'local' : bool,
-            'updated' : bool,
+            'uptodate' : bool,
             'markpush' : str
             }
     if argv[0] == 'sync':

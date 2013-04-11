@@ -1206,7 +1206,7 @@ elif [ "$DO" == 'u' ]; then
         echo git rebase --onto "$FEATUREBASE" "$STARTPOINT" "$FEATUREBRANCH"
         git rebase --onto "$FEATUREBASE" "$STARTPOINT" "$FEATUREBRANCH"
     else
-        echoerr "Previous feature $FEATUREBASE is not updated"
+        echoerr "Previous feature $FEATUREBASE is not up to date"
         echo "Rebase everything on devel"
         export BRANCHREPORT=$STARTPOINT
         git rebase $DEVREF $FEATUREBRANCH

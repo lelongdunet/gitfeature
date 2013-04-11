@@ -1,6 +1,6 @@
 from sys import argv
 from gitfeature.featio import process
-from gitfeature.featcache import load_cache
+from gitfeature.featcache import load_cache, BranchError
 
 repo_cache = load_cache()
 if len(argv) < 2:
@@ -16,7 +16,10 @@ elif argv[1] == 'parse':
         except ValueError:
             var = None
         sub_argv = cmd.split(';')
-        out = process(sub_argv, repo_cache)
+        try:
+            out = process(sub_argv, repo_cache)
+        except BranchError, e:
+            out = '!%s' % e
         if var is not None:
             list_out.append("%s='%s'" % (var, out))
         elif out is not None:

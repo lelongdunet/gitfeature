@@ -4,7 +4,7 @@ from posixpath import join, basename, dirname
 from os.path import exists, join as join_file
 from itertools import imap, chain
 
-_CACHEVER = 5
+_CACHEVER = 7
 
 _GITDIR = '.git'
 _GITROOT = '.'
@@ -56,6 +56,17 @@ class FeatureStartError(BranchError):
 
 class NotFoundFeature(Error):
     pass
+
+
+def get_sha(obj):
+    if isinstance(obj, Branch):
+        return obj.commit.sha
+    elif isinstance(obj, Commit):
+        return obj.sha
+    elif isinstance(obj, Feature):
+        return obj.mainbranch.commit.sha
+    else:
+        return obj
 
 class Commit(object):
     def __init__(self, repo_cache, sha, head = None, branch = None):
@@ -206,9 +217,20 @@ class Branch(object):
 
     def relatedupdates(self):
         if self.isstart():
-            return self.children.union(self.feature.branches)
+            return self.feature.branches
         else:
-            return self.children
+            return self.feature.relatedupdates()
+
+    def _switch_depend(self, new_depend):
+        if new_depend != self.depend:
+            if self.depend is not None:
+                try:
+                    self.depend.children.remove(self)
+                except KeyError:
+                    pass
+            self.depend = new_depend
+            if new_depend is not None:
+                new_depend.children.add(self)
 
     def updatecommits(self, repo):
         """ Update branch info using repo (called from sync) """
@@ -259,20 +281,45 @@ class Branch(object):
         if start is not None:
             self.start = start
             if depend is not None:
-                self.updated = True
-                self.depend = depend
-                depend.children.add(self)
-            else:
-                self.updated = False
+                self._switch_depend(depend)
         else:
             self.start = sha
-            self.updated = self.repo_cache.isatdevref(sha)
         self.root = sha
+
+    def check_depend(self):
+        """ Check if depend branch is a valid one according to its state
+            (must be called after feature update) """
+        if self.error is not None:
+            return
+
+        if self.depend is not None:
+            depend_featbranch = self.depend.feature.mainbranch
+            #update the parent branch if :
+            #  - state of the parent feature changed
+            #  - or parent branch does not exist any more
+            if (self.depend._stateid != depend_featbranch._stateid
+                    or (hasattr(self.depend, 'deleted')
+                        and self.depend.deleted)
+                    ):
+                self.depend = depend_featbranch
+
+        #Branch is up to date if its start corresponds to its dependency
+        if self.depend is None or self.depend.feature.integrated:
+            #TODO in multiple devref check devref is coherent when integrated
+            self.updated = self.repo_cache.isatdevref(self.start)
+        else:
+            self.updated = (get_sha(self.depend) == get_sha(self.start))
 
     def delete(self):
         """ Set this branch to be deleted """
         self.feature.delbranch(self)
         self.commit.delbranch(self)
+        self.deleted = True
+        if self.depend is not None:
+            try:
+                self.depend.children.remove(self)
+            except KeyError:
+                pass
         del self.repo_cache.branches[self.name]
 
     def state(self):
@@ -702,14 +749,17 @@ class RepoCache(object):
             modfeatset.add(branch.feature)
 
         #Update all commit datas related to branches (use heads previously set)
-        for branch_data in modbranchset:
+        for branch in modbranchset:
             try:
-                branch_data.updatecommits(repo)
+                branch.updatecommits(repo)
             except BranchError as e:
                 verbose('Error on branch %s : %s' % (basename(str(branch)), e))
 
         for feature in modfeatset:
             feature.update()
+
+        for branch in modbranchset:
+            branch.check_depend()
 
         #Finally save newly updated cache
         verbose('Save...')

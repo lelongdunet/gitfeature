@@ -4,7 +4,7 @@ from posixpath import join, basename, dirname
 from os.path import exists, join as join_file
 from itertools import imap, chain
 
-_CACHEVER = 8
+_CACHEVER = 9
 
 _GITDIR = '.git'
 _GITROOT = '.'
@@ -169,7 +169,7 @@ class Branch(object):
         self.name = name
         self.commit = None
         self.error = None
-        self.depend = None
+        self.depend = False
         self.children = set()
         self.local = local
         self.feature = repo_cache.featupdate(featname, self)
@@ -226,13 +226,13 @@ class Branch(object):
 
     def _switch_depend(self, new_depend):
         if new_depend != self.depend:
-            if self.depend is not None:
+            if self.depend:
                 try:
                     self.depend.children.remove(self)
                 except KeyError:
                     pass
             self.depend = new_depend
-            if new_depend is not None:
+            if new_depend:
                 new_depend.children.add(self)
 
     def updatecommits(self, repo):
@@ -285,10 +285,11 @@ class Branch(object):
 
         if start is not None:
             self.start = start
-            if depend is not None:
+            if depend:
                 self._switch_depend(depend)
         else:
             self.start = sha
+            self.depend = None
         self.root = sha
 
     def check_depend(self):
@@ -297,7 +298,7 @@ class Branch(object):
         if self.error is not None:
             return
 
-        if self.depend is not None:
+        if self.depend:
             depend_featbranch = self.depend.feature.mainbranch
             #update the parent branch if :
             #  - state of the parent feature changed
@@ -309,7 +310,9 @@ class Branch(object):
                 self.depend = depend_featbranch
 
         #Branch is up to date if its start corresponds to its dependency
-        if self.depend is None or self.depend.feature.integrated:
+        if self.depend is not None and not self.depend:
+            self.uptodate = False
+        elif self.depend is None or self.depend.feature.integrated:
             #TODO in multiple devref check devref is coherent when integrated
             self.uptodate = self.repo_cache.isatdevref(self.start)
         else:
@@ -320,7 +323,7 @@ class Branch(object):
         self.feature.delbranch(self)
         self.commit.delbranch(self)
         self.deleted = True
-        if self.depend is not None:
+        if self.depend:
             try:
                 self.depend.children.remove(self)
             except KeyError:
@@ -840,7 +843,9 @@ class RepoCache(object):
         #TODO Manage multiple devref
         devref = self.devrefs[basename(_DEVREF)]
         depend = self.get_branch(featname).depend
-        if depend is None or depend.feature.integrated:
+        if depend is not None and not depend:
+            return ''
+        elif depend is None or depend.feature.integrated:
             return b2a_hex(devref)
         else:
             return b2a_hex(depend.commit.sha)

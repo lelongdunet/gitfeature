@@ -19,6 +19,12 @@ fi
 cd "$GITDIR/.."
 GITDIR=.git
 
+if [ "$1" == "_featcache" ]; then
+    shift
+    $CMDFEATCACHE $@
+    exit
+fi
+
 ################################################################################
 #   Manage colors (see http://wiki.bash-hackers.org/scripting/terminalcodes )
 ################################################################################

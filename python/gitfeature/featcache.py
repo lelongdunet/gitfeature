@@ -268,6 +268,8 @@ class Branch(object):
                         depend = branch
 
                 if start is None:   depend = None
+                #Get a depend below start point only if none is in cache
+                elif depend is None: depend = self.depend
 
             #Get next commit
             if len(commit.parents) > 1:

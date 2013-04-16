@@ -404,7 +404,10 @@ class Feature(object):
         self.pushed = False
         for branch in self.branches:
             verbose('Get %s' % branch)
-            if not branch.local and branch.featuser == _MYREPO:
+            if not branch.local and branch.featuser == _MYREPO and (
+                    myremotebranch is None or (
+                        branch._stateid >= myremotebranch._stateid)
+                    ):
                 verbose('My remote : %s' % branch)
                 myremotebranch = branch
                 self.pushed = True

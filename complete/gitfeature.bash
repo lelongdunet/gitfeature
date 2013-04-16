@@ -10,15 +10,50 @@ __git_localfeat ()
 {
 	local dir="$(__gitdir)"
 	if [ -d "$dir" ]; then
-		git --git-dir="$dir" for-each-ref --format='%(refname:short)' \
-			refs/heads/draft refs/heads/final
+		git --git-dir="$dir" feature _featcache featlist local
+		return
+	fi
+}
+
+__git_allfeat ()
+{
+	local dir="$(__gitdir)"
+	if [ -d "$dir" ]; then
+		git --git-dir="$dir" feature _featcache featlist
+		return
+	fi
+}
+
+__git_finalfeat ()
+{
+	local dir="$(__gitdir)"
+	if [ -d "$dir" ]; then
+		git --git-dir="$dir" feature _featcache featbranches state=final
+		return
+	fi
+}
+
+__git_draftfeat ()
+{
+	local dir="$(__gitdir)"
+	if [ -d "$dir" ]; then
+		git --git-dir="$dir" feature _featcache featbranches state=draft
+		return
+	fi
+}
+
+__git_featbranches ()
+{
+	local dir="$(__gitdir)"
+	if [ -d "$dir" ]; then
+		git --git-dir="$dir" feature _featcache featbranches
 		return
 	fi
 }
 
 _git_featmove ()
 {
-    __gitcomp_nl "$(__git_localfeat)"
+    __gitcomp_nl "$(__git_refs)"
 }
 
 _git_featclose ()
@@ -41,6 +76,16 @@ _git_featupdate ()
     __gitcomp_nl "$(__git_localfeat)"
 }
 
+_git_featintegrate ()
+{
+    __gitcomp_nl "$(__git_finalfeat)"
+}
+
+_git_featfinalize ()
+{
+    __gitcomp_nl "$(__git_draftfeat)"
+}
+
 _git_featview ()
 {
     __gitcomp_nl "$(__git_remotes)"
@@ -53,7 +98,7 @@ _git_featlist ()
 
 _git_feature ()
 {
-	__gitcomp_nl "$(__git_refs)"
+	__gitcomp_nl "$(__git_featbranches)"
 }
 
 

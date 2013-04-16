@@ -480,59 +480,12 @@ function list_feattags()
 function start_point()
 {
     WORKINGBRANCH=$1
-    STARTLIST=$(git show-ref $FEATURESTART)
-
-    #Keep only start points that are in the branch
-    SELECTSTART=''
-    for s in $STARTLIST; do
-        DISTANCE=$(git rev-list --count $s ^$WORKINGBRANCH)
-        DISTANCEDEVREF=$(git rev-list --count $s ^$DEVREF)
-        if [[ "$DISTANCE" == 0 && "$DISTANCEDEVREF" != 0 ]]; then
-            SELECTSTART="$SELECTSTART$s "
-        fi
-    done
-    STARTLIST=$SELECTSTART
-
-    if [ -z "$STARTLIST" ]; then
-        DEPEND="$(list_feat_depend $WORKINGBRANCH)"
-        if [ -z "$DEPEND" ]; then
-            START=$DEVREF
-        else
-            echoerr "Features are detected between $DEVREF and $WORKINGBRANCH but there is no 'start'" >&2
-            echo 'marker *'"$FEATURESTART. Detected features are :" >&2
-            echo -e "$DEPEND" >&2
-            echo '------------------------------------------------------------' >&2
-            echo 'You should check it before making operations on your feature' >&2
-            exit 1
-        fi
-    else
-        if [ "$(echo -e "$STARTLIST"|wc -l)" == 1 ]; then
-            #If there is only one start point it is used
-            START=$(echo -e "$STARTLIST" | sed 's#^.*refs/\w*/\(.*\)\s*$#\1#')
-        elif echo -e "$STARTLIST" | grep refs/heads/$FEATURESTART &> /dev/null ; then
-            #Is there a local start point
-            START=$FEATURESTART
-        else
-            #A remote start point must be chosen
-            echoerr "Several remote start points are found :" >&2
-            echo -e "$STARTLIST" >&2
-            echo '------------------------------------------------------------' >&2
-            echo "Are you sure this is normal. If you are sure tell me wich I have to use by creating a local one" >&2
-            exit 1
-        fi
-    fi
-    echo $START
+    $CMDFEATCACHE start $WORKINGBRANCH
 }
 
 function feature_root()
 {
-    STARTPOINT=$(start_point $FEATUREBRANCH) || exit 1
-
-    if [ "$STARTPOINT" == "$DEVREF" ]; then
-        STARTPOINT=$(git merge-base "$DEVREF" "$FEATUREBRANCH")
-    fi
-
-    echo $STARTPOINT
+    $CMDFEATCACHE root $1
 }
 
 

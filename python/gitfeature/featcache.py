@@ -308,6 +308,8 @@ class Branch(object):
                         and self.depend.deleted)
                     ):
                 self.depend = depend_featbranch
+            elif (not self.depend.local and depend_featbranch.local):
+                self.depend = depend_featbranch
 
         #Branch is up to date if its start corresponds to its dependency
         if self.depend is not None and not self.depend:

@@ -770,6 +770,8 @@ elif [ "$DO" == 'tags' ]; then
 
 elif [ "$DO" == 'U' ]; then
     echo "Update remote devel reference : $DEVREF"
+    REMOTE=$(git config workflow.remote)
+    echo git push $REMOTE $DEVREF
     git push $REMOTE $DEVREF && \
     git push $REMOTE $(list_feattags refs/markers/devref $DEVREF) && \
     git update-ref refs/markers/devref $DEVREF

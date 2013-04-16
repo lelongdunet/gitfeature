@@ -434,15 +434,9 @@ FEATURESTART="$STARTNAMESPACE/$FEATURE"
 FEATUREDRAFT="$DRAFTNAMESPACE/$FEATURE"
 FEATUREFINAL="$FINALNAMESPACE/$FEATURE"
 
-#Check if the feature name already exists
-EXISTING="$(git show-ref $FEATURE)"
-EXISTDRAFT="$(echo -e "$EXISTING" | grep "$FEATUREDRAFT" )"
-EXISTFINAL="$(echo -e "$EXISTING" | grep "$FEATUREFINAL" )"
-
 if [ ! "$FEATURE" == "$FEATUREBRANCH" ]; then
     FEATUREDIR=$(dirname $FEATUREBRANCH)
     FEATURENAMESPACE=$(basename $FEATUREDIR)
-    FEATUREREMOTE=$(dirname $FEATUREDIR)
 
     if [[ ! ( "$FEATURENAMESPACE" == "$DRAFTNAMESPACE" || "$FEATURENAMESPACE" == "$FINALNAMESPACE" ) ]]; then
         echoerr "Invalid domain $FEATURENAMESPACE.\
@@ -455,8 +449,6 @@ else
         echoerr "Either checkout the branch or provide the feature name in command line"
         exit 1
     fi
-
-    FEATUREBRANCH=$DRAFTNAMESPACE/$FEATURE
 fi
 
 ################################################################################
@@ -489,18 +481,6 @@ function feature_root()
 }
 
 
-#List features on which we are based
-function list_feat_depend()
-{
-    WORKINGBRANCH=$1
-    LIST=$(git rev-list  --simplify-by-decoration --pretty='format:%d' "$WORKINGBRANCH" "^$DEVREF" | \
-        sed '/^\s*(/H;$!D;$g;s/[(), \n]\+/\n/g' | \
-        sed "/$FEATURE"'$/D;'"/$DRAFTNAMESPACE"'\/\w*$/H;'"/$FINALNAMESPACE"'\/\w*$/H;$!D;$g' | \
-        sed 's/^\s*$//')
-
-    echo -e "$LIST"
-}
-
 function branch_list()
 {
     git branch $@ | sed 's/^.\s*//'
@@ -515,113 +495,6 @@ function check_included()
         && return 0
 
     return 1
-}
-
-function check_final()
-{
-    featname=$(basename $1)
-    finalname=$FINALNAMESPACE/$featname
-    finallist=$(branch_list --list $finalname)
-    if [ -n "$finallist" ]; then
-        finallist="$finallist "
-    fi
-    finallist=$finallist$(branch_list -r --contains $DEVREF --list '*/'$finalname)
-    if [ -z "$finallist" ]; then
-        finallist=$(branch_list -r --list '*/'$finalname)
-    fi
-
-    echo "$finallist"
-}
-
-function check_local()
-{
-    featname=$(basename $1)
-    finalname=$FINALNAMESPACE/$featname
-    draftname=$DRAFTNAMESPACE/$featname
-    R=1
-    if git rev-parse $finalname &> /dev/null; then
-        echo $finalname
-        R=0
-    fi
-    if git rev-parse $draftname &> /dev/null; then
-        echo $draftname
-        R=0
-    fi
-
-    return $R
-}
-
-function get_feat_ref()
-{
-    FEATREMOTE=$(git config branch."$FEATUREDRAFT".remote)
-    FEATREBASE=$(git config branch."$FEATUREDRAFT".merge \
-        | sed 's#refs/\w*/##')
-    if [ -n "$FEATREBASE" ]; then
-        if [ "$FEATREMOTE" == '.' ]; then
-            echo "$FEATREBASE"
-        else
-            echo "$FEATREMOTE/$FEATREBASE"
-        fi
-    else
-        echo "$DEVREF"
-    fi
-}
-
-function list_locals()
-{
-    LOCALFEAT=$(branch_list --list 'draft/*')
-    LOCALFEAT="$LOCALFEAT $(branch_list --list 'final/*')"
-    FEATLIST=''
-    for feat in $LOCALFEAT; do
-        if ! check_included $feat; then
-            finalfeat=$(check_final $feat)
-            if [ -z "$finalfeat" ]; then
-                FEATLIST="$FEATLIST$feat "
-                FEATLIST="$FEATLIST$(branch_list -r --contains $DEVREF --list '*/'$feat) "
-            else
-                FEATLIST="$FEATLIST$finalfeat "
-            fi
-        fi
-    done
-
-    echo $FEATLIST
-}
-
-function list_remotes()
-{
-    REMOTENAME="$1"
-    REMOTEFEAT=$(branch_list -r --list $1'/draft/*')
-    REMOTEFEAT="$REMOTEFEAT $(branch_list -r --list $1'/final/*')"
-    FEATLIST=''
-    for feat in $REMOTEFEAT; do
-        if ! check_included $feat; then
-            finalfeat=$(check_final $feat)
-            if [ -z "$finalfeat" ]; then
-                FEATLIST="$FEATLIST$feat "
-                FEATLIST="$FEATLIST$(check_local $feat) "
-            else
-                FEATLIST="$FEATLIST$finalfeat "
-            fi
-        fi
-    done
-
-    echo $FEATLIST
-}
-
-function list_updated_remote()
-{
-    REMOTEFEAT=$(branch_list -r --contains $DEVREF --list '*/draft/*')
-    FEATLIST=''
-    for feat in $REMOTEFEAT; do
-        finalfeat=$(check_final $feat)
-        if [ -z "$finalfeat" ]; then
-            FEATLIST="$FEATLIST$finalfeat "
-        else
-            FEATLIST="$FEATLIST$feat "
-        fi
-    done
-
-    echo $REMOTEFEAT
 }
 
 function check_remote()
@@ -793,12 +666,7 @@ elif [ "$DO" == 's' ]; then
 
 #Close the feature
 elif [ "$DO" == 'C' ]; then
-    if [ -z "$EXISTFINAL" ]; then
-        echo -e $ERRCOL"The feature is not even finalized. "$NORMAL"Nothing to do!"
-        exit 1
-    fi
-
-    if [ -z "$(git tag --list '@'$FEATURE'_*')" ]; then
+    if ! $CMDFEATCACHE isintegrated $FEATUREBRANCH &> /dev/null; then
         echoerr "Integration tag not found. The feature cannot be closed"
         exit 1
     fi
@@ -810,6 +678,7 @@ elif [ "$DO" == 'C' ]; then
     exit
 
 elif [ "$DO" == 'Y' ]; then
+    FEATUREBRANCH=$($CMDFEATCACHE branch $FEATUREBRANCH)
     git rev-list --cherry-pick --right-only --pretty=full $DEVREF...$FEATUREBRANCH
     exit
 
@@ -877,13 +746,14 @@ elif [ "$DO" == 'i' ]; then
         exit 1
     fi
     #Check current branch is not a feature
-    if [[ "$CURRENT" =~ '/draft/' || "$CURRENT" =~ '/final/' ]]; then
+    if $CMDFEATCACHE isfeaturebranch "$CURRENT"; then
         echoerr "You are in feature branch. Be carefull!"
         exit 2
     fi
     CURRENTBRANCH=${CURRENT##refs/heads/}
 
     if [ "$REVERSE" == "y" ]; then
+        #TODO Retrieve history using featcache
         echo "Reverting last included feature..."
         TAGNAME=$(git tag -l --contains $CURRENTBRANCH '@*_*')
         if [ -z "$TAGNAME" ]; then
@@ -902,28 +772,30 @@ elif [ "$DO" == 'i' ]; then
     fi
 
     echo "Including $FEATURE in $CURRENTBRANCH"
-    if [ -z "$EXISTFINAL" ]; then
+    if ! FINALS="$($CMDFEATCACHE finals "$FEATURE")"; then
+        exit 100
+    fi
+
+    if [ -z "$FINALS" ]; then
         echo "No final branch found for inclusion of $FEATURE"
         exit 1
     fi
 
-    ABOVEREF=$(branch_list -a --contains $DEVREF --list '*'"$FEATUREFINAL")
-    if [ $(echo -e "$EXISTFINAL" | wc -l) == 1 ]; then
-        CHOSENFINAL=$(echo -e "$EXISTFINAL" | sed 's#^.*refs/\w*/\(.*\)\s*$#\1#')
-    elif [[ -n "$ABOVEREF" && $(echo -e "$ABOVEREF" | wc -l) == 1 ]]; then
-        CHOSENFINAL=$ABOVEREF
+    if [ $(echo -e "$FINALS" | wc -l) == 1 ]; then
+        CHOSENFINAL="$FINALS"
     else
-        if ! menuselect "$EXISTFINAL" "Choose a final reference for the feature $FEATURE" -d; then
+        if ! menuselect "$FINALS" "Choose a final reference for the feature $FEATURE" -d; then
             exit
         fi
-        CHOSENFINAL=$(sed '1!D;s#^.*refs/\w*/\(.*\)\s*$#\1#' "$TMPFILE")
+        CHOSENFINAL=$(<"$TMPFILE")
     fi
 
     #Get NEWBASE SHA-1
     NEWBASE=$(git rev-parse HEAD)
     STARTPOINT=$(start_point $FEATUREBRANCH) || exit 1
+    #TODO Check dependencies
 
-    if [[ "$(git rev-parse $STARTPOINT)" == "$(git rev-parse HEAD)" && -z "$(git rev-list "^$CHOSENFINAL" "$DEVREF")" ]]; then
+    if [ "$STARTPOINT" == "$(git rev-parse HEAD)" ]; then
         git rebase $CHOSENFINAL
         git tag '@'$FEATURE"_$(date '+%s')"
     else
@@ -1022,14 +894,16 @@ elif [ "$DO" == 'l' ]; then
 
 #Finalize feature
 elif [ "$DO" == 'f' ]; then
-    if [ -z "$EXISTDRAFT" ]; then
+    DRAFTBRANCH="$($CMDFEATCACHE draftbranch "$FEATUREBRANCH")"
+    if [ -z "$DRAFTBRANCH" ]; then
         echoerr "No draft branch found for feature $FEATURE found!"
         exit 4
     fi
 
-    if [ -n "$EXISTFINAL" ]; then
+    FINALS="$($CMDFEATCACHE finals "$FEATURE")"
+    if [ -n "$FINALS" ]; then
         echoerr "$FEATURE is already being finalized by you or someone else." ' *'/$FEATUREFINAL branches are detected.
-        echo -e "$EXISTFINAL"
+        echo -e "$FINALS"
         exit 5
     fi
 
@@ -1043,7 +917,8 @@ elif [ "$DO" == 'f' ]; then
     STARTPOINT=$(start_point $FEATUREBRANCH) || exit 1
 
     git branch -t $FEATUREFINAL $STARTPOINT
-    git branch -f $FEATUREFINAL $FEATUREBRANCH
+    git branch -f $FEATUREFINAL $DRAFTBRANCH
+    #TODO Check if dependencies are finalized
     #Check if STARTPOINT is in DEVREF line
     if [ $(git rev-list --count $STARTPOINT ^$DEVREF) == 0 ]; then
         git rebase -i $DEVREF $FEATUREFINAL
@@ -1055,20 +930,10 @@ elif [ "$DO" == 'f' ]; then
 
     exit
 elif [ "$DO" == 'm' ]; then
-    if [ -n "$EXISTFINAL" ]; then
-        if ! git rev-parse $FEATUREFINAL &> /dev/null; then
-            echoerr "$FEATURE is already being finalized by someone else." ' *'/$FEATUREFINAL branches are detected.
-            echo -e "$EXISTFINAL"
-            echo 'But there is no local final branch.'
-            echo "You cannot move a remote final branch"
-            exit 5
-        fi
-        FEATUREBRANCH=$FEATUREFINAL
-    elif ! git rev-parse $FEATUREDRAFT &> /dev/null; then
-        echoerr "No local branch $FEATUREDRAFT to move"
-        exit 10
-    else
-        FEATUREBRANCH=$FEATUREDRAFT
+    FEATUREBRANCH="$($CMDFEATCACHE workingbranch "$FEATUREBRANCH")"
+    if [ -z "$FEATUREBRANCH" ]; then
+        echo "No working branch found to move"
+        exit 5
     fi
 
     #Check if repo is clean
@@ -1088,7 +953,6 @@ elif [ "$DO" == 'm' ]; then
         export NEWSTARTPOINT=$MOVETO
     fi
     SHAFEAT=$(git rev-parse $FEATUREBRANCH)
-    STARTPOINT="$(git rev-parse "$STARTPOINT")"
     if [ "$SHAFEAT" == "$STARTPOINT" ]; then
         if git show-ref $FEATURESTART &> /dev/null; then
             git branch -D "$FEATURESTART"
@@ -1101,22 +965,14 @@ elif [ "$DO" == 'm' ]; then
         echo git rebase --onto $MOVETO $STARTPOINT $FEATUREBRANCH
         git rebase --onto $MOVETO $STARTPOINT $FEATUREBRANCH
     fi
+    #TODO Force new dependency in the hook if succesfull
     exit
 
 elif [ "$DO" == 'r' ]; then
-    if [ -n "$EXISTFINAL" ]; then
-        if ! git rev-parse $FEATUREFINAL &> /dev/null; then
-            echoerr "$FEATURE is already being finalized by you or someone else." ' *'/$FEATUREFINAL branches are detected.
-            echo -e "$EXISTFINAL"
-            echo "You should not move a feature being finalizd"
-            exit 5
-        fi
-        FEATUREBRANCH=$FEATUREFINAL
-    elif ! git rev-parse $FEATUREDRAFT &> /dev/null; then
-        echoerr "No local branch $FEATUREDRAFT to move"
-        exit 10
-    else
-        FEATUREBRANCH=$FEATUREDRAFT
+    FEATUREBRANCH="$($CMDFEATCACHE workingbranch "$FEATUREBRANCH")"
+    if [ -z "$FEATUREBRANCH" ]; then
+        echo "No working branch found to move"
+        exit 5
     fi
 
     #Check if repo is clean
@@ -1132,21 +988,10 @@ elif [ "$DO" == 'r' ]; then
     exit
 
 elif [ "$DO" == 'u' ]; then
-    #Check if no final branch
-    if [ -n "$EXISTFINAL" ]; then
-        #Check if the branch is local
-        if ! git rev-parse $FEATUREFINAL &> /dev/null; then
-            echoerr "This operation can only be done on local final branch"
-            exit 10
-        fi
-        FEATUREBRANCH=$FEATUREFINAL
-    else
-        #Check if the branch is local
-        if ! git rev-parse $FEATUREDRAFT &> /dev/null; then
-            echoerr "This operation can only be done on local draft branch"
-            exit 10
-        fi
-        FEATUREBRANCH=$FEATUREDRAFT
+    FEATUREBRANCH="$($CMDFEATCACHE workingbranch "$FEATUREBRANCH")"
+    if [ -z "$FEATUREBRANCH" ]; then
+        echo "No working branch found to move"
+        exit 5
     fi
 
     #Check if repo is clean
@@ -1156,32 +1001,24 @@ elif [ "$DO" == 'u' ]; then
         exit 6
     fi
 
-
     STARTPOINT=$(start_point "$FEATUREBRANCH") || exit 1
-    FEATUREBASE=$(get_feat_ref)
+    FEATUREBASE="$($CMDFEATCACHE smartdepend "$FEATUREBRANCH")"
+
+    if [ -z "$FEATUREBASE" ]; then
+        echo "No base on which to update"
+        echo "Use featmove to specify a branch as feature base"
+        exit 1
+    fi
     #TODO Check for other refs between start point and branch end.
-    if [ "$(git rev-parse $STARTPOINT)" == "$DEVREFHASH" ]; then
+    if [ "$STARTPOINT" == "$FEATUREBASE" ]; then
         git checkout "$FEATUREBRANCH"
-        git rebase $DEVREF
-    elif [ -z "$(git rev-list ^$FEATUREBASE $DEVREF)" ]; then
+        echo "Feature is already up to date"
+        exit
+    else
         echo git rebase --onto "$FEATUREBASE" "$STARTPOINT" "$FEATUREBRANCH"
         git rebase --onto "$FEATUREBASE" "$STARTPOINT" "$FEATUREBRANCH"
-    else
-        echoerr "Previous feature $FEATUREBASE is not up to date"
-        echo "Rebase everything on devel"
-        export BRANCHREPORT=$STARTPOINT
-        git rebase $DEVREF $FEATUREBRANCH
     fi
     exit
-
-elif [ "$DO" == 'e' ]; then
-    # ====== Not used now =======
-    if [ -z "$EXISTING" ]; then
-        echoerr "No feature $FEATURE found!"
-        exit 4
-    fi
-
-    dialog --menu "Choose which branch you to be based on" 40 100 15 1 $EXISTING 2> "$TMPFILE"
 
 elif [ "$DO" == 'T' ]; then
     #Check if repo is clean
@@ -1283,7 +1120,7 @@ elif [ "$DO" == 'T' ]; then
     exit
 
 elif [ "$DO" == 'L' ]; then
-    feat_list 'b'
+    $CMDFEATCACHE featmainbranch sort=time
     exit
 
 elif [ "$DO" == 't' ]; then
@@ -1296,13 +1133,9 @@ elif [ "$DO" == 't' ]; then
     echo FEATURESTART : $FEATURESTART
     echo FEATUREDRAFT : $FEATUREDRAFT
     echo FEATUREFINAL : $FEATUREFINAL
-    echo EXISTING     : $EXISTING
-    echo EXISTDRAFT   : $EXISTDRAFT
-    echo EXISTFINAL   : $EXISTFINAL
     echo FEATUREDIR   : $FEATUREDIR
     echo FEATUREBRANCH : $FEATUREBRANCH
     echo FEATURENAMESPACE : $FEATURENAMESPACE
-    echo FEATUREREMOTE : $FEATUREREMOTE
 
     echoimportant 'start > '$(start_point $FEATUREBRANCH)
     echowarn "Do nothing ..."
@@ -1312,7 +1145,7 @@ elif [ "$DO" == 't' ]; then
     exit
 
 else
-    if [ -n "$EXISTING" ]; then
+    if $CMDFEATCACHE isfeaturebranch "$FEATURE"; then
         echoerr "The name $FEATURE has been found in existing branches"
         echo "Choose another name for your new feature"
         exit 5
@@ -1347,5 +1180,4 @@ if ! git diff --quiet HEAD; then
 else
     git checkout $FEATUREDRAFT
 fi
-
 

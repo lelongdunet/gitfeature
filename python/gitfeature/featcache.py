@@ -57,6 +57,12 @@ class FeatureStartError(BranchError):
 class NotWorkingBranchError(BranchError):
     pass
 
+class NoLocalBranch(BranchError):
+    pass
+
+class NotIntegrated(BranchError):
+    pass
+
 class NotFoundFeature(Error):
     pass
 
@@ -191,6 +197,10 @@ class Branch(object):
     def isfinal(self):
         """ Return True if this is a final branch """
         return _featstates[self._stateid] == 'final'
+
+    def isdraft(self):
+        """ Return True if this is a draft branch """
+        return _featstates[self._stateid] == "draft"
 
     def get_start(self):
         """ Return SHA of the start point """
@@ -473,6 +483,14 @@ class Feature(object):
             return [branch for branch in self.branches
                     if (branch._stateid == self.mainbranch._stateid
                         and branch.uptodate)]
+
+    def finalheads(self):
+        """ Return the list of final branches """
+        return [branch for branch in self.branches if branch.isfinal()]
+
+    def draftheads(self):
+        """ Return the list of draft branches """
+        return [branch for branch in self.branches if branch.isdraft()]
 
     def relatedupdates(self):
         children = lambda branch: branch.children
@@ -827,6 +845,14 @@ class RepoCache(object):
         except:
             return feat.mainbranch
 
+    def get_isfeaturebranch(self, branchname):
+        """ Check if the given branch is related to an existing feature """
+        try:
+            self.get_feature(branchname)
+        except BranchError:
+            pass
+        return 'y'
+
     def get_start(self, featname):
         """ Return SHA of the start point of the given feature """
         return b2a_hex(self.get_branch(featname).get_start())
@@ -834,6 +860,29 @@ class RepoCache(object):
     def get_branches(self, featname):
         """ Return list of branches of the given feature """
         return ' '.join(map(str, self.get_feature(featname).heads()))
+
+    def get_final(self, featname):
+        """ Return the first final branch of the given feature """
+        try:
+            return self.get_feature(featname).finalheads()[0]
+        except IndexError:
+            return ''
+
+    def get_finals(self, featname):
+        """ Return the list of final branches of the given feature """
+        return '\n'.join(imap(str, self.get_feature(featname).finalheads()))
+
+    def get_draftbranch(self, featname):
+        """ Return the closest draft branch """
+        branch = self.get_branch(featname)
+        if branch.isdraft():
+            return branch
+        elif branch.feature.mainbranch.isdraft():
+            return branch.feature.mainbranch
+        try:
+            return branch.feature.draftheads()[0]
+        except IndexError:
+            return ''
 
     def get_state(self, featname):
         """ Return current state of the given feature """
@@ -874,6 +923,16 @@ class RepoCache(object):
             return 'y'
         raise NotWorkingBranchError
 
+    def get_workingbranch(self, branchname):
+        """ Check if the closest working or empty string if none """
+        branch = self.get_branch(branchname)
+        if branch.local and branch.ismaxstate():
+            return branch
+        branch = branch.feature.mainbranch
+        if branch.local:
+            return branch
+        return ''
+
     def get_shortstate(self, featname):
         feat = self.get_feature(featname)
         if feat.integrated:
@@ -888,4 +947,16 @@ class RepoCache(object):
     def get_mainbranch(self, featname):
         """ Return the main working branch of the given feature """
         return self.get_feature(featname).mainbranch
+
+    def get_islocal(self, featname):
+        """ Check if the given feature has local branches """
+        if self.get_feature(featname).haslocal():
+            return 'y'
+        raise NoLocalBranch
+
+    def get_isintegrated(self, featname):
+        """ Check if the given feature is integrated """
+        if self.get_feature(featname).integrated:
+            return 'y'
+        raise NotIntegrated
 

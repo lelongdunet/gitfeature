@@ -332,9 +332,6 @@ while getopts "AFrfm:tb:a:hucvpliPRSUsTL" OPTION; do
         r)
             DO='r'
             ;;
-        #s)        #> Specify the feature already exists and you want to share it (take no arg)
-        #    DO='e'
-        #    ;;
         f)
             DO='f'
             ;;
@@ -595,18 +592,14 @@ function feat_list()
     esac
 }
 
-
-#Check the state of features on which we are based
-# function check_feat_depend()
-# {
-# }
-
 ################################################################################
 #   Proceed
 ################################################################################
-if test "$DO" != 'p' && ! check_remote; then
-    exit 1
-fi
+#TODO : Display current features errors as Warning (force the user to confirm)
+#           but don't block all the workflow for one error on one branch
+#if test "$DO" != 'p' && ! check_remote; then
+#    exit 1
+#fi
 
 
 #Change DEVREF

@@ -373,7 +373,7 @@ while getopts "AFrfm:tb:a:hucvpliPRSUsTL" OPTION; do
             ;;
         T)
             DO='T'
-            EXPECTED=none
+            EXPECTED=1
             ;;
         h)
             usage
@@ -1039,9 +1039,14 @@ elif [ "$DO" == 'T' ]; then
     testname=$(unicref test$(date +%d%m%y).)
     git config workflow.lastref $testname
     git checkout testing
+    if [ -n "$ARG" ]; then
+        WORKFILE="test_merge_$ARG"
+    else
+        WORKFILE="test_merge"
+    fi
 
-    if [ -f "$GITDIR/test_merge" ]; then
-        source "$GITDIR/test_merge"
+    if [ -f "$GITDIR/$WORKFILE" ]; then
+        source "$GITDIR/$WORKFILE"
     fi
 
     LIST="$($CMDFEATCACHE featmainbranch state=draft,final sort=time)"
@@ -1113,8 +1118,8 @@ elif [ "$DO" == 'T' ]; then
     git commit --allow-empty -F "$TMPFILE"
     git branch -f testing_track
 
-    echo "MERGEDFEAT='$MERGEDFEAT'" > "$GITDIR/test_merge"
-    echo "NOTMERGEDFEAT='$NOTMERGEDFEAT'" >> "$GITDIR/test_merge"
+    echo "MERGEDFEAT='$MERGEDFEAT'" > "$GITDIR/$WORKFILE"
+    echo "NOTMERGEDFEAT='$NOTMERGEDFEAT'" >> "$GITDIR/$WORKFILE"
     repeatchar 60 '='
 
     exit

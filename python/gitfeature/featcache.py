@@ -274,11 +274,12 @@ class Branch(object):
                             and branch.feature == self.feature
                             and start is None):
                         start = branch
-                    elif depend is None and branch.isactive():
+                    elif(depend is None
+                            and branch.isactive()
+                            and branch.feature != self.feature):
                         depend = branch
 
                 if start is None:   depend = None
-                #Get a depend below start point only if none is in cache
                 elif depend is None: depend = self.depend
 
             #Get next commit

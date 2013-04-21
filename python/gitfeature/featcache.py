@@ -262,6 +262,9 @@ class Branch(object):
         commit = repo.commit(sha)
         self.time = commit.commit_time
 
+        #Reset related errors
+        self.error = None
+
         #Walk until start point
         start = None
         depend = None

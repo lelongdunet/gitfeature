@@ -436,7 +436,11 @@ class Feature(object):
                 verbose('My local : %s' % branch)
                 localbranch = branch
 
-            if not branch.local and branch._stateid >= stateid:
+            if (
+                    not branch.local
+                    and branch._stateid >= stateid
+                    and branch.featuser != _MYREPO
+                    ):
                 if selectremote is None:
                     selectremote = branch
                 elif selectremote._stateid < stateid:

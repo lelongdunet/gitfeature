@@ -53,6 +53,16 @@ def featdetail(repo_cache, markpush = 'ox ', markupdate = '* ', **args):
             feat.mainbranch.time
             ))
 
+def pushlist(repo_cache, updateall = False):
+    pushname = lambda branch: branch.pushname()
+    if not updateall:
+        return imap(pushname, repo_cache.pendingpush)
+    else:
+        return imap(pushname,
+                set(chain(
+                    repo_cache.pendingpush,
+                    *[f.pushlist() for f in repo_cache.features.itervalues()
+                        if f.needpush()])))
 
 def featstat(repo_cache, markpush = 'ox ', markupdate = '* ', **args):
     listout = []
@@ -81,6 +91,7 @@ def featmainbranch(repo_cache, **args):
 listfunc_dict = {
         'featlist' : featlist,
         'featstat' : featstat,
+        'pushlist' : pushlist,
         'featdetail' : featdetail,
         'featbranches' : featbranches,
         'featmainbranch' : featmainbranch
@@ -95,6 +106,7 @@ def process(argv, repo_cache):
             'reverse' : bool,
             'local' : bool,
             'uptodate' : bool,
+            'updateall' : bool,
             'markpush' : str
             }
     if argv[0] == 'sync':

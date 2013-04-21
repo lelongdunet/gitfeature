@@ -513,30 +513,6 @@ function check_remote()
     return $ERR
 }
 
-function push_feat()
-{
-    ARGFEAT=$(basename "$1")
-    ARGFEATFINAL=$FINALNAMESPACE/$ARGFEAT
-    ARGFEATDRAFT=$DRAFTNAMESPACE/$ARGFEAT
-    ARGFEATSTART=$STARTNAMESPACE/$ARGFEAT
-    REMOTE=$(git config workflow.remote)
-    if git rev-parse $ARGFEATFINAL &> /dev/null; then
-        git push -f $REMOTE $ARGFEATFINAL
-        if git rev-parse $REMOTE/$ARGFEATDRAFT &> /dev/null; then
-            git push -f $REMOTE :$ARGFEATDRAFT
-        fi
-    elif git show-rev $ARGFEATFINAL &> /dev/null; then 
-        if git rev-parse $REMOTE/$ARGFEATDRAFT &> /dev/null; then
-            git push -f $REMOTE :$ARGFEATDRAFT
-        fi
-    elif git rev-parse $ARGFEATDRAFT &> /dev/null; then
-        git push -f $REMOTE $ARGFEATDRAFT
-    fi 
-    if git rev-parse $ARGFEATSTART &> /dev/null; then
-        git push -f $REMOTE $ARGFEATSTART
-    fi
-}
-
 function feat_local_branches()
 {
     BRANCHES=''
@@ -807,20 +783,17 @@ elif [ "$DO" == 'i' ]; then
 
 #Push feature
 elif [ "$DO" == 'p' ]; then
-    push_feat "$FEATURE"
+    REMOTE=$(git config workflow.remote)
+    for branch in $($CMDFEATCACHE pushauto "$FEATURE"); do
+        git push -f $REMOTE $branch
+    done
     exit
 
 elif [ "$DO" == 'P' ]; then
-    for feat in $(branch_list --list "$DRAFTNAMESPACE"/'*'); do
-        if [ -z "$(git rev-parse "$FINALNAMESPACE/$feat" &> /dev/null)" ]; then
-            push_feat $feat
-        fi
+    REMOTE=$(git config workflow.remote)
+    for branch in $($CMDFEATCACHE pushlist updateall); do
+        git push -f $REMOTE $branch
     done
-
-    for feat in $(branch_list --list "$FINALNAMESPACE"/'*'); do
-        push_feat $feat
-    done
-
     exit
         
 #Check feature

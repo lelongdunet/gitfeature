@@ -2,9 +2,9 @@ import cPickle
 from binascii import a2b_hex, b2a_hex
 from posixpath import join, basename, dirname
 from os.path import exists, join as join_file
-from itertools import imap, chain
+from itertools import imap, chain, ifilterfalse
 
-_CACHEVER = 9
+_CACHEVER = 10
 
 _GITDIR = '.git'
 _GITROOT = '.'
@@ -40,6 +40,9 @@ class InvalidUnique(Error):
     pass
 
 class UniqueViolation(Error):
+    pass
+
+class NoPushAllowedError(Error):
     pass
 
 class BranchError(Error):
@@ -186,6 +189,16 @@ class Branch(object):
         self.parent = None
         self.trash = []     # List of old commits to delete
 
+        if self.featuser == _MYREPO:
+            #If it results from a pending commit, remove it
+            localname = self.localname()
+            localbranch = filter(
+                    lambda branch: branch.name == localname,
+                    repo_cache.pendingpush
+                    )
+            if len(localbranch) > 0:
+                repo_cache.pendingpush.remove(localbranch[0])
+
     def isstart(self):
         """ Return True if this is a start point branch """
         return self._stateid == 0
@@ -222,6 +235,26 @@ class Branch(object):
                 _featstates[self._stateid],
                 self.feature.name
                 ))
+
+    def localname(self):
+        """ Return local name of the branch (without repository name) """
+        nameparts = list(chain(self.extraname, (
+            self.featuser,
+            _featstates[self._stateid],
+            self.feature.name)
+            ))
+        if self.local:
+            return '/'.join(nameparts)
+        else:
+            return '/'.join(nameparts[1:])
+
+    def pushname(self):
+        if self.local:
+            return str(self)
+        elif self.featuser == _MYREPO:
+            return ':%s' % self.localname()
+        else:
+            raise NoPushAllowedError
 
     def unsethead(self):
         """ Remove the reference to this branch as a head in related commit """
@@ -465,9 +498,83 @@ class Feature(object):
         else:
             self.mainbranch = selectremote
 
+        #Check push consistency
+        self.repo_cache.pendingpush.update(self.pushclean())
+
+    def pushclean(self, rmlower = False):
+        """ Return an iterable object of remote branches to be removed """
+        if not self.pushed:
+            return ()
+
+        localbranches = {b._stateid:b for b in self.branches if b.local}
+        myremotebranches = {b._stateid:b for b in self.branches
+                if b.featuser == _MYREPO}
+
+        #If there is no local branches for it remove everything
+        if not self.mainbranch.local:
+            return myremotebranches.itervalues()
+
+        myremotebranch = myremotebranches[max(myremotebranches)]
+        rmbranches = []
+
+        if isinstance(self.error, FeaturePushError):
+            self.error = None
+
+        #Check start point
+        if self.pushuptodate and (
+                localbranches.has_key(0)
+                and (
+                    not myremotebranches.has_key(0)
+                    or
+                    myremotebranches[0].commit != localbranches[0].commit)
+                ):
+            rmbranches.append(localbranches[0])
+            self.error = FeaturePushError()
+
+        #If no local start point branch remove remote if exists
+        if self.pushuptodate and (
+                not localbranches.has_key(0)
+                and myremotebranches.has_key(0)):
+            rmbranches.append(myremotebranches[0])
+            self.error = FeaturePushError()
+
+        #Remote branch to remove
+        if not self.mainbranch.isactive() or rmlower:
+            #If feature is not active never keep remote branch below
+            #current state
+            level_to_keep = self.mainbranch._stateid
+        else:
+            #Keep only the highest level remote branch
+            level_to_keep = myremotebranch._stateid
+
+        rmbranches.extend([myremotebranches[k]
+            for k in myremotebranches.iterkeys()
+            if k < level_to_keep and k > 0])
+
+        if self.mainbranch.isstart():
+            rmbranches.append(myremotebranches[0])
+        return rmbranches
+
+    def pushlist(self, force = False):
+        """ Return iterable of branches to push (or remote to remove). """
+        branches = list(self.pushclean(True))
+        if self.mainbranch.local and (force or self.mainbranch.isactive()):
+            branches.append(self.mainbranch)
+            if isinstance(self.mainbranch.start, Branch):
+                branches.append(self.mainbranch.start)
+
+        return branches
+
     def haslocal(self):
         """ Return True if there is a local branch for this feature """
         return self.mainbranch.local
+
+    def needpush(self):
+        """ Return True if there is something to push for this feature. """
+        return (self.mainbranch.local
+                and self.pushed
+                and not self.pushuptodate
+                and not self.integrated)
 
     def uptodate(self):
         """ Return True is up to date regarding its dependencies. """
@@ -611,6 +718,7 @@ class RepoCache(object):
         self.branches = {}
         self.featusers = []
         self.devrefs = {}
+        self.pendingpush = set()
         self.version = _CACHEVER
 
     def featupdate(self, featname, branch):
@@ -809,6 +917,11 @@ class RepoCache(object):
         for branch in modbranchset:
             branch.check_depend()
 
+        #Forget removed remote branches
+        self.pendingpush = set(ifilterfalse(
+            lambda branch: hasattr(branch, 'deleted'),
+            self.pendingpush))
+
         #Finally save newly updated cache
         verbose('Save...')
         self._save_cache()
@@ -958,6 +1071,24 @@ class RepoCache(object):
             return ">F : feature being finalized"
         else:
             return ">D : draft feature"
+
+    def get_push(self, featname):
+        """ Return list of branches to push to update a remote feature """
+        feature = self.get_feature(featname)
+        pushname = lambda branch: branch.pushname()
+        return '\n'.join(imap(pushname, feature.pushlist(True)))
+
+    def get_pushauto(self, featname):
+        """ Return list of branches to push to update a remote feature """
+        feature = self.get_feature(featname)
+        pushname = lambda branch: branch.pushname()
+        return '\n'.join(imap(pushname,
+            chain(
+                feature.pushlist(True),
+                self.pendingpush
+                )
+            )
+            )
 
     def get_mainbranch(self, featname):
         """ Return the main working branch of the given feature """

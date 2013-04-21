@@ -409,7 +409,7 @@ class Feature(object):
             return None
 
         stateid = 0
-        branchlocal = None
+        localbranch = None
         myremotebranch = None
         selectremote = None
         self.pushed = False
@@ -428,10 +428,10 @@ class Feature(object):
                 verbose('State to %s (%d)' % (_featstates[stateid], stateid))
 
             if branch.local and (
-                    branchlocal is None
-                    or branch._stateid > branchlocal._stateid):
+                    localbranch is None
+                    or branch._stateid > localbranch._stateid):
                 verbose('My local : %s' % branch)
-                branchlocal = branch
+                localbranch = branch
 
             if not branch.local and branch._stateid >= stateid:
                 if selectremote is None:
@@ -442,19 +442,19 @@ class Feature(object):
                     selectremote = branch
 
         verbose('> %s selectremote : %s' % (self, selectremote))
-        verbose('> %s branchlocal : %s' % (self, branchlocal))
+        verbose('> %s localbranch : %s' % (self, localbranch))
         if self.repo_cache.check_integrated(self.name):
             self.integrated = True
             self.pushuptodate = True
 
         #Local branch has priority only if it the highest state
-        if (branchlocal is not None
+        if (localbranch is not None
                 and (selectremote is None
-                    or selectremote._stateid <= branchlocal._stateid)):
-            self.mainbranch = branchlocal
+                    or selectremote._stateid <= localbranch._stateid)):
+            self.mainbranch = localbranch
             self.pushuptodate = self.integrated or (self.pushed
-                    and branchlocal.commit == myremotebranch.commit
-                    and branchlocal.samestate(myremotebranch))
+                    and localbranch.commit == myremotebranch.commit
+                    and localbranch.samestate(myremotebranch))
         else:
             self.mainbranch = selectremote
 

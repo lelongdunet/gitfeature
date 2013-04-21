@@ -470,6 +470,7 @@ class Feature(object):
         return self.mainbranch.local
 
     def uptodate(self):
+        """ Return True is up to date regarding its dependencies. """
         if not self.integrated:
             return self.mainbranch.uptodate
         return True
@@ -501,6 +502,8 @@ class Feature(object):
         return [branch for branch in self.branches if branch.isdraft()]
 
     def relatedupdates(self):
+        """ Return the set of branch that can be altered
+            by the modification of this feature. """
         children = lambda branch: branch.children
         return set().union(*imap(children, self.branches))
 
@@ -611,6 +614,7 @@ class RepoCache(object):
         self.version = _CACHEVER
 
     def featupdate(self, featname, branch):
+        """ Add a branch to the given feature (name) and create if needed. """
         if self.features.has_key(featname):
             feature = self.features[featname]
             feature.addbranch(branch)
@@ -620,6 +624,8 @@ class RepoCache(object):
         return feature
 
     def get_username(self, featuser):
+        """ Return the reference to the featuser string in featusers list.
+            Create the item in the list if not found. """
         try:
             return self.featusers[self.featusers.index(featuser)]
         except ValueError:
@@ -627,6 +633,7 @@ class RepoCache(object):
             return featuser
 
     def sethead(self, sha, branch):
+        """ Change the head commit of the given branch. """
         branch.unsethead()
         if self.commits.has_key(sha):
             self.commits[sha].sethead(branch)

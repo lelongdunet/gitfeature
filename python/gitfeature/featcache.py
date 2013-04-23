@@ -894,6 +894,7 @@ class RepoCache(object):
 
         #Finally save newly updated cache
         self._save_cache()
+        verbose('-' * 60)
 
     def listfeat(self, local = None,
             featuser = None,

@@ -3,6 +3,7 @@ from binascii import a2b_hex, b2a_hex
 from posixpath import join, basename, dirname
 from os.path import exists, join as join_file
 from itertools import imap, chain, ifilterfalse
+from util import verbose, debug, initlog
 
 _CACHEVER = 10
 
@@ -10,6 +11,8 @@ _GITDIR = '.git'
 _GITROOT = '.'
 _DEVREF = 'heads/devel'
 _MYREPO = 'mine'
+
+initlog(join_file(_GITDIR, 'featcache.log'))
 
 def load_cache():
     pickle_file = join_file(_GITDIR, 'featcache')
@@ -29,9 +32,6 @@ _featsort = {
         'fullname' : lambda feature: feature.mainbranch.name,
         'time' : lambda feature: feature.mainbranch.time
         }
-
-def verbose(string):
-    print string
 
 class Error(Exception):
     pass

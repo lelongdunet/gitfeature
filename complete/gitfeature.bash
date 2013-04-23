@@ -73,6 +73,11 @@ _git_featclose ()
     __gitcomp_nl "$(__git_localfeat)"
 }
 
+_git_featco ()
+{
+    __gitcomp_nl "$(__git_allfeat)"
+}
+
 _git_featpush ()
 {
     __gitcomp_nl "$(__git_localfeat)"

@@ -168,6 +168,7 @@ initialize()
     git config alias.feattest "feature -T"
     git config alias.featclear "feature -a clear"
     git config alias.featcherry "feature -a cherry"
+    git config alias.featco "feature -a checkout"
 }
 
 unicref()
@@ -196,6 +197,7 @@ OPTIONS:
             > clear : Interactively close included features
             > cherry : look for commits that are (not) cherry-picked in DEVREF
                 - accecpt reverse option -R for "not"
+            > checkout : checkout the main branch of the given feature
             > devref : Change the devref ( it must always contain the old one )
             > files : list files modified in all commits of the feature
             > diff : show all patch (overall diff) of the feature (all commits together)
@@ -234,6 +236,7 @@ The following alias can be used:
     > featclose			"feature -a close"
     > featclear			"feature -a clear"
     > featcherry		"feature -a cherry"
+    > featco            "feature -a checkout"
     > featreview		"feature -r"
     > featfinalize		"feature -f"
     > featupdate		"feature -u"
@@ -269,6 +272,9 @@ while getopts "AFrfm:tb:a:hucvpliRSUsTL" OPTION; do
                     ;;
                 cherry)
                     DO='Y'
+                    ;;
+                checkout)
+                    DO='co'
                     ;;
                 devref)
                     DO='d'
@@ -939,6 +945,18 @@ elif [ "$DO" == 'r' ]; then
     STARTPOINT=$(start_point "$FEATUREBRANCH") || exit 1
     git checkout $FEATUREBRANCH
     git rebase -i $STARTPOINT
+    exit
+
+elif [ "$DO" == 'co' ]; then
+    #Check if repo is clean
+    if ! git diff --quiet HEAD; then
+        echoerr "The repository needs to be clean for this operation."
+        echo "Please clean uncommited changes and try again."
+        exit 6
+    fi
+    FEATUREBRANCH="$($CMDFEATCACHE mainbranch "$FEATUREBRANCH")"
+    echo git checkout "$FEATUREBRANCH"
+    git checkout "$FEATUREBRANCH"
     exit
 
 elif [ "$DO" == 'u' ]; then

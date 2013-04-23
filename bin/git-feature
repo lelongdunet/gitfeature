@@ -9,7 +9,7 @@ PYPATH="$(dirname "$(readlink -f "$0")")"/../python
 CMDFEATCACHE="python $PYPATH/featmain.py"
 TMPFILE=/tmp/featuretmp.$USER
 HOOKRELPATH=../hooks
-VER="v0.1.06"
+VER="v0.2.00"
 
 
 if ! GITDIR="$(git rev-parse --git-dir)"; then

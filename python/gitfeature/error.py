@@ -28,6 +28,9 @@ class NoLocalBranch(BranchError):
 class NotIntegrated(BranchError):
     pass
 
+class NotUpToDate(BranchError):
+    pass
+
 class NotFoundFeature(Error):
     pass
 

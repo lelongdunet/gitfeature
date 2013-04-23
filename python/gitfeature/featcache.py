@@ -1076,3 +1076,9 @@ class RepoCache(object):
             return 'y'
         raise error.NotIntegrated
 
+    def get_isuptodate(self, featname):
+        """ Check if the given feature is up to date """
+        if self.get_feature(featname).uptodate():
+            return 'y'
+        raise error.NotUpToDate
+

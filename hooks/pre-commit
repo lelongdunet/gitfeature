@@ -40,76 +40,61 @@ if CURRENT=$(git symbolic-ref HEAD 2> /dev/null); then
     CURRENTBRANCH=${CURRENT##refs/heads/}
     CURRENTFEAT=$(basename $CURRENT)
 
-    if [[ "$CURRENTNAMESPACE" == "$STARTNAMESPACE" ]]; then
-        echo "########### -- ERROR -- ###################"
-        echo "Never move nor commit manually this reference, this is a marker automatically managed"
-        echo "You must never rebase nor commit in $STARTNAMESPACE/$CURRENTFEAT"
-        echo "###########################################"
-        exit 1
-    fi
-
-    if [[ "$CURRENTNAMESPACE" == "$FINALNAMESPACE" ]]; then
-        echo "########### -- ERROR -- ###################"
-        echo "You should not commit in a $FINALNAMESPACE branch"
-        echo "this branch should only be modified through rebase"
-        echo "###########################################"
-        exit 1
-    fi
-
-    if [[ "$CURRENTNAMESPACE" == "$DRAFTNAMESPACE" ]]; then
-        #Check if there is a start point
-        STARTFEAT=$STARTNAMESPACE/$CURRENTFEAT
-        if git rev-parse $STARTFEAT &> /dev/null; then
-            #Check if start point is contained in branch
-            DISTANCESTART=$(git rev-list --count $STARTFEAT ^$against)
-            if [ ! "$DISTANCESTART" == 0 ]; then
-                echo "###########################################"
-                echo "The start point $STARTFEAT is at strange position"
-                echo "You should fix it before continuing!"
-                echo "###########################################"
-                exit 1
-            fi
-            STARTPOINT='y'
-        fi
-        #Check if the branch is updated (DEVREF must be in history)
-        DISTANCE=$(git rev-list --count $DEVREF ^$against)
-        if [ ! "$DISTANCE" == 0 ]; then
-            if [ "$STARTPOINT" == "y" ]; then
-                echo "###########################################"
-                echo "WARNING"
-                echo "> You are not based on an up to date feature!"
-                echo "###########################################"
-            else
-                echo "########### -- ERROR -- ###################"
-                echo "Your current branch is not based on $DEVREF"
-                echo "Run rebase before commiting!"
-                echo "  - The rebase can be mase using feature update with"
-                echo "git feature -u"
-                echo ""
-                echo "###########################################"
-                echo "  - You can save your index state using the stash with"
-                echo "git stash save --keep-index MYLASTCHANGE"
-                echo "git stash save MYLASTINDEX"
-                echo ""
-                echo "  - Then you will restore your index with"
-                echo "git stash apply"
-                echo "# > Check there are no conflicts"
-                echo "git stash drop"
-                echo "git add -u"
-                echo "git stash apply"
-                echo "# > Check there are no conflicts"
-                echo "git stash drop"
-                echo ""
-                echo "------------------------------------------"
-                exit 1
-            fi
+    if MAINBRANCH="$(git feature _featcache mainbranch "$CURRENTFEAT" 2> /dev/null)"; then
+        if ! FEATSTATE="$(git feature _featcache state "$CURRENTFEAT")"; then
+            echo "########### -- ERROR -- ###################"
+            echo "The feature $CURRENTFEAT seems to be in error"
+            echo "Fix it before commiting!"
+            echo "###########################################"
+            exit 1
         fi
 
-        #Check if there is final branch
-        FINALS=$(git show-ref $FINALNAMESPACE/$CURRENTFEAT)
-        if [[ -n "$FINALS" ]]; then
-            echo "The feature $CURRENTFEAT is already being finalized"
-            echo "you should not commit anymore in this branch"
+        if [ ! "$FEATSTATE" == 'draft' ]; then
+            echo "########### -- ERROR -- ###################"
+            echo "The feature $CURRENTFEAT is currently in $FEATSTATE state"
+            echo "You should only work in draft feature!"
+            echo "###########################################"
+            exit 1
+        fi
+
+        if [ ! "$CURRENTBRANCH" == "$MAINBRANCH" ]; then
+            echo "########### -- ERROR -- ###################"
+            echo "This is not the main branch of feature $FEATURE"
+            echo "Checkout the main branch : $MAINBRANCH"
+            echo "before commiting changes!"
+            echo "###########################################"
+            exit 1
+        fi
+
+        if git feature _featcache isintegrated "$CURRENTFEAT" &> /dev/null; then
+            echo "########### -- ERROR -- ###################"
+            echo "The feature already integrated"
+            echo "It can't be modified any more!"
+            echo "###########################################"
+            exit 1
+        fi
+
+        if ! git feature _featcache isuptodate "$CURRENTFEAT" &> /dev/null; then
+            echo "########### -- ERROR -- ###################"
+            echo "Your current branch is not up to date"
+            echo "Run featupdate before commiting!"
+            echo ' > git featupdate'
+            echo ""
+            echo "###########################################"
+            echo "  - You can save your index state using the stash with"
+            echo "git stash save --keep-index MYLASTCHANGE"
+            echo "git stash save MYLASTINDEX"
+            echo ""
+            echo "  - Then you will restore your index with"
+            echo "git stash apply"
+            echo "# > Check there are no conflicts"
+            echo "git stash drop"
+            echo "git add -u"
+            echo "git stash apply"
+            echo "# > Check there are no conflicts"
+            echo "git stash drop"
+            echo ""
+            echo "------------------------------------------"
             exit 1
         fi
     fi

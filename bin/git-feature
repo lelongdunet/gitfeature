@@ -157,7 +157,6 @@ initialize()
 
     #Set alias
     git config alias.featpush "feature -p"
-    git config alias.featpushall "feature -P"
     git config alias.featmove "feature -m"
     git config alias.featclose "feature -a close"
     git config alias.featreview "feature -r"
@@ -165,7 +164,6 @@ initialize()
     git config alias.featupdate "feature -u"
     git config alias.featintegrate "feature -i"
     git config alias.featview "feature -v"
-    git config alias.featviewall "feature -a view all"
     git config alias.featlist "feature -l"
     git config alias.feattest "feature -T"
     git config alias.featclear "feature -a clear"
@@ -219,7 +217,7 @@ OPTIONS:
    -m      Move the feature upon a new base
                 > Specify the feature on which you want to move the current feature
    -p      Push the given feature
-   -P      Push all local features
+                > Update all features if 'all' specified.
    -r      Review commits of the branch ( git rebase -i )
    -t      Dummy option for test purpose.
    -T      Make a test branch
@@ -232,7 +230,6 @@ OPTIONS:
 ALIAS:
 The following alias can be used:
     > featpush			"feature -p"
-    > featpushall		"feature -P"
     > featmove			"feature -m"
     > featclose			"feature -a close"
     > featclear			"feature -a clear"
@@ -243,7 +240,6 @@ The following alias can be used:
     > featintegrate		"feature -i"
     > feattest			"feature -T"
     > featview			"feature -v"    (see -a view)
-    > featviewall		"feature -a view all"
     > featlist			"feature -l"
 
 EOF
@@ -255,7 +251,7 @@ EOF
 
 DO='n' # Default action is new feature
 
-while getopts "AFrfm:tb:a:hucvpliPRSUsTL" OPTION; do
+while getopts "AFrfm:tb:a:hucvpliRSUsTL" OPTION; do
     case $OPTION in
         a)
             case $OPTARG in
@@ -357,10 +353,6 @@ while getopts "AFrfm:tb:a:hucvpliPRSUsTL" OPTION; do
         p)
             DO='p'
             ;;
-        P)
-            DO='P'
-            EXPECTED=none
-            ;;
         U)
             DO='U'
             EXPECTED=none
@@ -423,7 +415,6 @@ if ! DEVREF=$(git config workflow.devref); then
     exit 6
 fi
 
-DEVREFHASH=$(git rev-parse $DEVREF)
 STARTNAMESPACE='start'
 DRAFTNAMESPACE='draft'
 FINALNAMESPACE='final'
@@ -783,19 +774,16 @@ elif [ "$DO" == 'i' ]; then
 
 #Push feature
 elif [ "$DO" == 'p' ]; then
+    if [ "$FEATURE" == 'all' ]; then
+        FEATURE=updateall
+    fi
+    echo "Pushing feature $FEATURE"
     REMOTE=$(git config workflow.remote)
     for branch in $($CMDFEATCACHE pushauto "$FEATURE"); do
         git push -f $REMOTE $branch
     done
     exit
 
-elif [ "$DO" == 'P' ]; then
-    REMOTE=$(git config workflow.remote)
-    for branch in $($CMDFEATCACHE pushlist updateall); do
-        git push -f $REMOTE $branch
-    done
-    exit
-        
 #Check feature
 elif [ "$DO" == 'c' ]; then
     exit
@@ -1097,7 +1085,6 @@ elif [ "$DO" == 'L' ]; then
 elif [ "$DO" == 't' ]; then
     echo FEATURE      : $FEATURE
     echo DEVREF       : $DEVREF
-    echo DEVREFHASH   : $DEVREFHASH
     echo STARTNAMESPACE  : $STARTNAMESPACE
     echo DRAFTNAMESPACE  : $DRAFTNAMESPACE
     echo FINALNAMESPACE  : $FINALNAMESPACE
@@ -1133,6 +1120,8 @@ if [ ! "$DISTANCE" == 0 ]; then
     echo "Ensure your base is correct and / or rebase it if needed before creating your new feature"
     exit 7
 fi
+
+DEVREFHASH=$(git rev-parse $DEVREF)
 
 if [ ! "$(git rev-parse $FOLLOW)" == "$DEVREFHASH" ]; then
     echoerr "Provide distant start point"

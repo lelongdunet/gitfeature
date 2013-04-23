@@ -4,6 +4,7 @@ from posixpath import join, basename, dirname
 from os.path import exists, join as join_file
 from itertools import imap, chain, ifilterfalse
 from util import verbose, debug, initlog
+import error
 
 _CACHEVER = 10
 
@@ -17,7 +18,11 @@ initlog(join_file(_GITDIR, 'featcache.log'))
 def load_cache():
     pickle_file = join_file(_GITDIR, 'featcache')
     if exists(pickle_file):
-        repo_cache = cPickle.load(open(pickle_file))
+        try:
+            repo_cache = cPickle.load(open(pickle_file))
+        except AttributeError:
+            verbose("AttributeError while loading cache. Re initialize!")
+            repo_cache = RepoCache()
     else:
         repo_cache = RepoCache()
 
@@ -33,42 +38,6 @@ _featsort = {
         'time' : lambda feature: feature.mainbranch.time
         }
 
-class Error(Exception):
-    pass
-
-class InvalidUnique(Error):
-    pass
-
-class UniqueViolation(Error):
-    pass
-
-class NoPushAllowedError(Error):
-    pass
-
-class BranchError(Error):
-    pass
-
-class FeatureMergeError(BranchError):
-    pass
-
-class FeaturePushError(BranchError):
-    pass
-
-class FeatureStartError(BranchError):
-    pass
-
-class NotWorkingBranchError(BranchError):
-    pass
-
-class NoLocalBranch(BranchError):
-    pass
-
-class NotIntegrated(BranchError):
-    pass
-
-class NotFoundFeature(Error):
-    pass
-
 
 def get_sha(obj):
     if isinstance(obj, Branch):
@@ -83,7 +52,7 @@ def get_sha(obj):
 class Commit(object):
     def __init__(self, repo_cache, sha, head = None, branch = None):
         if repo_cache.commits.has_key(sha):
-            raise InvalidUnique
+            raise error.InvalidUnique
         repo_cache.commits[sha] = self
 
         if head is not None:
@@ -160,7 +129,7 @@ class Branch(object):
 
     def __init__(self, repo_cache, name, local):
         if repo_cache.branches.has_key(name):
-            raise InvalidUnique
+            raise error.InvalidUnique
         repo_cache.branches[name] = self
 
         nameparts = name.split('/')
@@ -254,7 +223,7 @@ class Branch(object):
         elif self.featuser == _MYREPO:
             return ':%s' % self.localname()
         else:
-            raise NoPushAllowedError
+            raise error.NoPushAllowedError
 
     def unsethead(self):
         """ Remove the reference to this branch as a head in related commit """
@@ -320,14 +289,14 @@ class Branch(object):
 
             #Get next commit
             if len(commit.parents) > 1:
-                self.error = FeatureMergeError(self)
+                self.error = error.FeatureMergeError(self)
                 raise self.error
 
             sha = a2b_hex(commit.parents[0])
             commit = repo.commit(sha)
 
         if not self.repo_cache.isindevref(sha):
-            self.error = FeatureStartError(self)
+            self.error = error.FeatureStartError(self)
             raise self.error
 
         if start is not None:
@@ -413,7 +382,7 @@ class Feature(object):
     """
     def __init__(self, repo_cache, name, branch):
         if repo_cache.features.has_key(name):
-            raise InvalidUnique
+            raise error.InvalidUnique
         repo_cache.features[name] = self
 
         self.name = name
@@ -517,7 +486,7 @@ class Feature(object):
         myremotebranch = myremotebranches[max(myremotebranches)]
         rmbranches = []
 
-        if isinstance(self.error, FeaturePushError):
+        if isinstance(self.error, error.FeaturePushError):
             self.error = None
 
         #Check start point
@@ -529,7 +498,7 @@ class Feature(object):
                     myremotebranches[0].commit != localbranches[0].commit)
                 ):
             rmbranches.append(localbranches[0])
-            self.error = FeaturePushError()
+            self.error = error.FeaturePushError()
             verbose('Start point push error on %s' % self)
 
         #If no local start point branch remove remote if exists
@@ -537,7 +506,7 @@ class Feature(object):
                 not localbranches.has_key(0)
                 and myremotebranches.has_key(0)):
             rmbranches.append(myremotebranches[0])
-            self.error = FeaturePushError()
+            self.error = error.FeaturePushError()
             verbose('Start point push error on %s' % self)
 
         #Remote branch to remove
@@ -909,7 +878,7 @@ class RepoCache(object):
         for branch in modbranchset:
             try:
                 branch.updatecommits(repo)
-            except BranchError as e:
+            except error.BranchError as e:
                 verbose('Error on branch %s : %s' % (basename(str(branch)), e))
 
         for feature in modfeatset:
@@ -957,7 +926,7 @@ class RepoCache(object):
         """ Retrieve a feature object from its name """
         featname = basename(featname)
         if not self.features.has_key(featname):
-            raise NotFoundFeature
+            raise error.NotFoundFeature
         feature = self.features[featname]
         if feature.mainbranch.error is not None:
             raise feature.mainbranch.error
@@ -977,7 +946,7 @@ class RepoCache(object):
         """ Check if the given branch is related to an existing feature """
         try:
             self.get_feature(branchname)
-        except BranchError:
+        except error.BranchError:
             pass
         return 'y'
 
@@ -1049,7 +1018,7 @@ class RepoCache(object):
         branch = self.get_branch(branchname)
         if branch.local and branch.ismaxstate():
             return 'y'
-        raise NotWorkingBranchError
+        raise error.NotWorkingBranchError
 
     def get_workingbranch(self, branchname):
         """ Check if the closest working or empty string if none """
@@ -1098,11 +1067,11 @@ class RepoCache(object):
         """ Check if the given feature has local branches """
         if self.get_feature(featname).haslocal():
             return 'y'
-        raise NoLocalBranch
+        raise error.NoLocalBranch
 
     def get_isintegrated(self, featname):
         """ Check if the given feature is integrated """
         if self.get_feature(featname).integrated:
             return 'y'
-        raise NotIntegrated
+        raise error.NotIntegrated
 

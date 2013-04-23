@@ -1,4 +1,5 @@
-from featcache import load_cache, NotFoundFeature
+from featcache import load_cache
+from error import NotFoundFeature
 from itertools import imap, chain
 
 def argdict(allargs, argin):

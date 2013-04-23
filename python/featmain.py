@@ -1,6 +1,7 @@
 from sys import argv
 from gitfeature.featio import process
-from gitfeature.featcache import load_cache, BranchError
+from gitfeature.featcache import load_cache
+from gitfeature.error import BranchError
 
 repo_cache = load_cache()
 if len(argv) < 2:

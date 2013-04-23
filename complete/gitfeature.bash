@@ -28,6 +28,7 @@ __git_finalfeat ()
 {
 	local dir="$(__gitdir)"
 	if [ -d "$dir" ]; then
+		git --git-dir="$dir" feature _featcache featlist state=final
 		git --git-dir="$dir" feature _featcache featbranches state=final
 		return
 	fi
@@ -37,6 +38,7 @@ __git_draftfeat ()
 {
 	local dir="$(__gitdir)"
 	if [ -d "$dir" ]; then
+		git --git-dir="$dir" feature _featcache featlist state=draft
 		git --git-dir="$dir" feature _featcache featbranches state=draft
 		return
 	fi
@@ -46,6 +48,16 @@ __git_featbranches ()
 {
 	local dir="$(__gitdir)"
 	if [ -d "$dir" ]; then
+		git --git-dir="$dir" feature _featcache featbranches
+		return
+	fi
+}
+
+__git_featnamebranches ()
+{
+	local dir="$(__gitdir)"
+	if [ -d "$dir" ]; then
+		git --git-dir="$dir" feature _featcache featlist
 		git --git-dir="$dir" feature _featcache featbranches
 		return
 	fi
@@ -98,7 +110,7 @@ _git_featlist ()
 
 _git_feature ()
 {
-	__gitcomp_nl "$(__git_featbranches)"
+	__gitcomp_nl "$(__git_featnamebranches)"
 }
 
 

@@ -923,17 +923,17 @@ class RepoCache(object):
         return listout
 
 
-    def get_feature(self, featname):
+    def get_feature(self, featname, nocheck = False):
         """ Retrieve a feature object from its name """
         featname = basename(featname)
         if not self.features.has_key(featname):
             raise error.NotFoundFeature
         feature = self.features[featname]
-        if feature.mainbranch.error is not None:
-            raise feature.mainbranch.error
-        if feature.error is not None:
-            raise feature.error
-
+        if not nocheck:
+            if feature.mainbranch.error is not None:
+                raise feature.mainbranch.error
+            if feature.error is not None:
+                raise feature.error
         return feature
 
     def get_branch(self, branchname):
@@ -1044,7 +1044,7 @@ class RepoCache(object):
 
     def get_push(self, featname):
         """ Return list of branches to push to update a remote feature """
-        feature = self.get_feature(featname)
+        feature = self.get_feature(featname, True)
         pushname = lambda branch: branch.pushname()
         return '\n'.join(imap(pushname, feature.pushlist(True)))
 
@@ -1062,11 +1062,11 @@ class RepoCache(object):
 
     def get_mainbranch(self, featname):
         """ Return the main working branch of the given feature """
-        return self.get_feature(featname).mainbranch
+        return self.get_feature(featname, True).mainbranch
 
     def get_islocal(self, featname):
         """ Check if the given feature has local branches """
-        if self.get_feature(featname).haslocal():
+        if self.get_feature(featname, True).haslocal():
             return 'y'
         raise error.NoLocalBranch
 

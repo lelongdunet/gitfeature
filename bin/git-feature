@@ -379,7 +379,7 @@ if [ "$EXPECTED" == none ]; then
 elif [ -n "$EXPECTED" ]; then
     ARG=$1
 elif [ $# == 1 ]; then
-    FEATUREBRANCH=$1
+    FEATUREBRANCH="${1//[[:space:]]/}"
 elif [ "$OPTFEATARG" == "y" ]; then
     FEATUREBRANCH=""
 elif test "$DO" != 'n' && CURRENT=$(git symbolic-ref HEAD 2> /dev/null); then
@@ -423,8 +423,8 @@ FEATUREDRAFT="$DRAFTNAMESPACE/$FEATURE"
 FEATUREFINAL="$FINALNAMESPACE/$FEATURE"
 
 if [ ! "$FEATURE" == "$FEATUREBRANCH" ]; then
-    FEATUREDIR=$(dirname $FEATUREBRANCH)
-    FEATURENAMESPACE=$(basename $FEATUREDIR)
+    FEATUREDIR="$(dirname "$FEATUREBRANCH")"
+    FEATURENAMESPACE="$(basename "$FEATUREDIR")"
 
     if [[ ! ( "$FEATURENAMESPACE" == "$DRAFTNAMESPACE" || "$FEATURENAMESPACE" == "$FINALNAMESPACE" ) ]]; then
         echoerr "Invalid domain $FEATURENAMESPACE.\

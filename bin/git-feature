@@ -402,9 +402,6 @@ elif [[ -z "$EXPECTED" && -z "$OPTFEATARG" ]]; then
     exit 1
 fi
 
-## Synchronize featcache
-$CMDFEATCACHE
-
 ################################################################################
 #   Check and prepare environment
 ################################################################################
@@ -419,6 +416,13 @@ fi
 if ! DEVREF=$(git config workflow.devref); then
     echoerr "The git config workflow.devref parameter must be define"
     exit 6
+fi
+
+## Synchronize featcache
+if ! $CMDFEATCACHE; then
+    echoerr "Error while syncing cache."
+    echo " > check python-dulwich package is installed."
+    exit 7
 fi
 
 STARTNAMESPACE='start'

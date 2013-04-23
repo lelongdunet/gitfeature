@@ -428,6 +428,7 @@ class Feature(object):
     def addbranch(self, branch):
         """ Update data of a branch related to this feature """
         if not branch in self.branches:
+            verbose('%s : New feature branch : %s' % (self, branch))
             self.branches.add(branch)
 
     def delbranch(self, branch):
@@ -450,23 +451,21 @@ class Feature(object):
         selectremote = None
         self.pushed = False
         for branch in self.branches:
-            verbose('Get %s' % branch)
             if not branch.local and branch.featuser == _MYREPO and (
                     myremotebranch is None or (
                         branch._stateid >= myremotebranch._stateid)
                     ):
-                verbose('My remote : %s' % branch)
+                debug('My remote : %s' % branch)
                 myremotebranch = branch
                 self.pushed = True
 
             if branch._stateid > stateid:
                 stateid = branch._stateid
-                verbose('State to %s (%d)' % (_featstates[stateid], stateid))
 
             if branch.local and (
                     localbranch is None
                     or branch._stateid > localbranch._stateid):
-                verbose('My local : %s' % branch)
+                debug('My local : %s' % branch)
                 localbranch = branch
 
             if (
@@ -481,8 +480,7 @@ class Feature(object):
                 elif branch.time > selectremote.time:
                     selectremote = branch
 
-        verbose('> %s selectremote : %s' % (self, selectremote))
-        verbose('> %s localbranch : %s' % (self, localbranch))
+        debug('%s : selectremote : %s' % (self, selectremote))
         if self.repo_cache.check_integrated(self.name):
             self.integrated = True
             self.pushuptodate = True
@@ -497,6 +495,8 @@ class Feature(object):
                     and localbranch.samestate(myremotebranch))
         else:
             self.mainbranch = selectremote
+
+        verbose('Main branch : %s' % self.mainbranch)
 
         #Check push consistency
         self.repo_cache.pendingpush.update(self.pushclean())
@@ -530,6 +530,7 @@ class Feature(object):
                 ):
             rmbranches.append(localbranches[0])
             self.error = FeaturePushError()
+            verbose('Start point push error on %s' % self)
 
         #If no local start point branch remove remote if exists
         if self.pushuptodate and (
@@ -537,6 +538,7 @@ class Feature(object):
                 and myremotebranches.has_key(0)):
             rmbranches.append(myremotebranches[0])
             self.error = FeaturePushError()
+            verbose('Start point push error on %s' % self)
 
         #Remote branch to remove
         if not self.mainbranch.isactive() or rmlower:
@@ -688,7 +690,6 @@ class _CommitStore(object):
         #Now reverse commit count
         for sha, count in self.newcommits.iteritems():
             count = max_index - count
-            verbose('Reverse count : %s : %d' % (b2a_hex(sha), count))
             self.commits[sha] = count
 
         #TODO To remove when tags will be replaced by commit message
@@ -781,7 +782,7 @@ class RepoCache(object):
 
     def _save_cache(self):
         if hasattr(self, 'commitstore') and self.commitstore is not None:
-            print 'Save commitstore : %s' % self.commitstore.devrefs
+            verbose('Save commitstore : %s' % self.commitstore.devrefs)
             f = open('out', 'w')
             f.write(str(self.commitstore))
             f.close()
@@ -789,7 +790,7 @@ class RepoCache(object):
             cPickle.dump(self.commitstore, open(pickle_file, 'wb', -1))
             del self.commitstore
         else:
-            print 'No save commitstore'
+            verbose('No save commitstore')
 
         pickle_file = join_file(_GITDIR, 'featcache')
         cPickle.dump(self, open(pickle_file, 'wb'), -1)
@@ -923,7 +924,6 @@ class RepoCache(object):
             self.pendingpush))
 
         #Finally save newly updated cache
-        verbose('Save...')
         self._save_cache()
 
     def listfeat(self, local = None,

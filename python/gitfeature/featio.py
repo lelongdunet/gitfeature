@@ -111,6 +111,7 @@ def process(argv, repo_cache):
             'local' : bool,
             'uptodate' : bool,
             'updateall' : bool,
+            'old' : int,
             'markpush' : str
             }
     if argv[0] == 'sync':

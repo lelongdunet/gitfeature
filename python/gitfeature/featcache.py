@@ -923,10 +923,14 @@ class RepoCache(object):
             uptodate = False,
             state = None,
             sort = None,
+            old = None,
             reverse = False):
         listout = []
         if isinstance(state, str):
             state = state.split(',')
+
+        if old is not None:
+            from time import time
 
         for feature in self.features.itervalues():
             hide = False
@@ -935,6 +939,7 @@ class RepoCache(object):
             hide |= state is not None and not feature.mainbranch.state() in state
             hide |= uptodate and not feature.uptodate()
             hide |= integrated ^ feature.integrated
+            hide |= old is not None and feature.mainbranch.time > time() - old
 
             if not hide:
                 listout.append(feature)

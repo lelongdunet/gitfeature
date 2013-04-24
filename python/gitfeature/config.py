@@ -3,8 +3,6 @@ from os import environ
 class Config:
     pass
 
-Config.DEVREF = environ['DEVREF']
-Config.REMOTE = environ['REMOTE']
 try:
     Config.DEVREF = environ['DEVREF']
 except KeyError:

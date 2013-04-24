@@ -9,7 +9,7 @@ PYPATH="$(dirname "$(readlink -f "$0")")"/../python
 CMDFEATCACHE="python $PYPATH/featmain.py"
 TMPFILE=/tmp/featuretmp.$USER
 HOOKRELPATH=../hooks
-VER="v0.2.01"
+VER="v0.2.02"
 
 
 if ! GITDIR="$(git rev-parse --git-dir)"; then
@@ -161,7 +161,6 @@ initialize()
     #Set alias
     git config alias.featpush "feature -p"
     git config alias.featmove "feature -m"
-    git config alias.featclose "feature -a close"
     git config alias.featreview "feature -r"
     git config alias.featfinalize "feature -f"
     git config alias.featupdate "feature -u"
@@ -170,8 +169,12 @@ initialize()
     git config alias.featlist "feature -l"
     git config alias.feattest "feature -T"
     git config alias.featclear "feature -a clear"
-    git config alias.featcherry "feature -a cherry"
     git config alias.featco "feature -a checkout"
+
+    git config --unset alias.featcherry
+    git config --unset alias.featclose
+    git config --unset alias.featviewall
+    git config --unset alias.featpushall
 }
 
 unicref()
@@ -236,9 +239,7 @@ ALIAS:
 The following alias can be used:
     > featpush			"feature -p"
     > featmove			"feature -m"
-    > featclose			"feature -a close"
     > featclear			"feature -a clear"
-    > featcherry		"feature -a cherry"
     > featco            "feature -a checkout"
     > featreview		"feature -r"
     > featfinalize		"feature -f"

@@ -54,3 +54,4 @@ if [[ "$1" == rebase ]]; then
     fi
 fi
 
+$CMDFEATCACHE

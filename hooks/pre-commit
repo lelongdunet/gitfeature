@@ -97,6 +97,7 @@ if CURRENT=$(git symbolic-ref HEAD 2> /dev/null); then
             echo "------------------------------------------"
             exit 1
         fi
+        $CMDFEATCACHE
     fi
 fi
 

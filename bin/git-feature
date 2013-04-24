@@ -9,7 +9,7 @@ PYPATH="$(dirname "$(readlink -f "$0")")"/../python
 CMDFEATCACHE="python $PYPATH/featmain.py"
 TMPFILE=/tmp/featuretmp.$USER
 HOOKRELPATH=../hooks
-VER="v0.2.00"
+VER="v0.2.01"
 
 
 if ! GITDIR="$(git rev-parse --git-dir)"; then
@@ -608,6 +608,7 @@ if [ "$DO" == 'd' ]; then
     if is_local $NEWREF; then
         git update-ref refs/markers/devref $NEWREF
     fi
+    $CMDFEATCACHE
     exit
 
 elif [ "$DO" == 'tags' ]; then
@@ -647,6 +648,7 @@ elif [ "$DO" == 'C' ]; then
     git rev-parse $FEATUREFINAL &> /dev/null && git branch -D $FEATUREFINAL
     git rev-parse $FEATURESTART &> /dev/null && git branch -D $FEATURESTART
 
+    $CMDFEATCACHE
     exit
 
 elif [ "$DO" == 'Y' ]; then
@@ -691,6 +693,7 @@ elif [ "$DO" == 'D' ]; then
     else
         echo "Deletion canceled."
     fi
+    $CMDFEATCACHE
     exit
 
 
@@ -781,6 +784,7 @@ elif [ "$DO" == 'i' ]; then
         echo git rebase --onto $NEWBASE $STARTPOINT $FEATUREINTEGRATE
         git rebase --onto $NEWBASE $STARTPOINT $FEATUREINTEGRATE
     fi
+    $CMDFEATCACHE
 
     exit
 
@@ -793,6 +797,7 @@ elif [ "$DO" == 'p' ]; then
     for branch in $($CMDFEATCACHE pushauto "$FEATURE"); do
         git push -f $REMOTE $branch
     done
+    $CMDFEATCACHE
     exit
 
 #Check feature
@@ -927,11 +932,11 @@ elif [ "$DO" == 'm' ]; then
         fi
         git checkout "$FEATUREBRANCH"
         git reset --hard "$MOVETO"
+        $CMDFEATCACHE
     else
         echo git rebase --onto $MOVETO $STARTPOINT $FEATUREBRANCH
         git rebase --onto $MOVETO $STARTPOINT $FEATUREBRANCH
     fi
-    #TODO Force new dependency in the hook if succesfull
     exit
 
 elif [ "$DO" == 'r' ]; then
@@ -1175,3 +1180,4 @@ else
     git checkout $FEATUREDRAFT
 fi
 
+$CMDFEATCACHE

@@ -919,10 +919,11 @@ elif [ "$DO" == 'm' ]; then
     fi
     SHAFEAT=$(git rev-parse $FEATUREBRANCH)
     if [ "$SHAFEAT" == "$STARTPOINT" ]; then
-        if git show-ref $FEATURESTART &> /dev/null; then
-            git branch -D "$FEATURESTART"
-        elif [ "$(git rev-list --count ^$DEVREF $MOVETO)" != "0" ]; then
+        echo "Move empty feature"
+        if [ "$(git rev-list --count ^$DEVREF $MOVETO)" != "0" ]; then
             git branch -f "$FEATURESTART" "$MOVETO"
+        else
+            git branch -D "$FEATURESTART" 2> /dev/null
         fi
         git checkout "$FEATUREBRANCH"
         git reset --hard "$MOVETO"
@@ -986,11 +987,21 @@ elif [ "$DO" == 'u' ]; then
         echo "Use featmove to specify a branch as feature base"
         exit 1
     fi
+    SHAFEAT=$(git rev-parse $FEATUREBRANCH)
     #TODO Check for other refs between start point and branch end.
     if [ "$STARTPOINT" == "$FEATUREBASE" ]; then
         git checkout "$FEATUREBRANCH"
         echo "Feature is already up to date"
         exit
+    elif [ "$SHAFEAT" == "$STARTPOINT" ]; then
+        echo "Update empty feature"
+        if [ "$(git rev-list --count ^$DEVREF $FEATUREBASE)" != "0" ]; then
+            git branch -f "$FEATURESTART" "$FEATUREBASE"
+        else
+            git branch -D "$FEATURESTART" 2> /dev/null
+        fi
+        git checkout "$FEATUREBRANCH"
+        git reset --hard "$FEATUREBASE"
     else
         echo git rebase --onto "$FEATUREBASE" "$STARTPOINT" "$FEATUREBRANCH"
         git rebase --onto "$FEATUREBASE" "$STARTPOINT" "$FEATUREBRANCH"

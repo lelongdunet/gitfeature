@@ -543,6 +543,12 @@ class Feature(object):
                 and not self.pushuptodate
                 and not self.integrated)
 
+    def depend(self):
+        """ Return dependency of main branch """
+        if not self.integrated:
+            return self.mainbranch.depend
+        return None
+
     def uptodate(self):
         """ Return True is up to date regarding its dependencies. """
         if not self.integrated:

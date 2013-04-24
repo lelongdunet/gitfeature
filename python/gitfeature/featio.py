@@ -75,7 +75,10 @@ def featstat(repo_cache, markpush = 'ox ', markupdate = '* ', **args):
         else:
             pushed = markpush[0]
 
-        uptodate = markupdate[1] if feat.uptodate() else markupdate[0]
+        if feat.depend() is not None and not feat.depend():
+            uptodate = '?'
+        else:
+            uptodate = markupdate[1] if feat.uptodate() else markupdate[0]
         if feat.error is not None or feat.mainbranch.error is not None:
             uptodate = '!'
             pushed = '!'

@@ -425,10 +425,14 @@ export DEVREF
 export REMOTE=$(git config workflow.remote)
 
 ## Synchronize featcache
-if ! $CMDFEATCACHE; then
+if ! EVENTS="$($CMDFEATCACHE sync)"; then
     echoerr "Error while syncing cache."
     echo " > check python-dulwich package is installed."
     exit 7
+fi
+
+if [ -n "$EVENTS" ]; then
+    eval "$EVENTS"
 fi
 
 STARTNAMESPACE='start'

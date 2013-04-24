@@ -115,8 +115,15 @@ def process(argv, repo_cache):
             'markpush' : str
             }
     if argv[0] == 'sync':
-        repo_cache.sync()
-        return None
+        if len(argv) > 1:
+            repo_cache.sync(argv[1])
+        else:
+            repo_cache.sync()
+            events = repo_cache.read_events()
+            if events is not None:
+                return "o=o;%s" % ';'.join([
+                    '%s=y' % event for event in events])
+        return ''
     elif argv[0] == '_featdetail':
         lines = []
         for f in repo_cache.features.itervalues():

@@ -706,6 +706,7 @@ class RepoCache(object):
         self.featusers = []
         self.devrefs = {}
         self.pendingpush = set()
+        self.events = set()
         self.version = _CACHEVER
 
     def featupdate(self, featname, branch):
@@ -802,7 +803,7 @@ class RepoCache(object):
             return 0
         return self.commitstore.commits.has_key(sha)
 
-    def sync(self):
+    def sync(self, addevent = ''):
         """ Sync cache with real state of the repository """
         from dulwich.repo import Repo
 
@@ -810,6 +811,12 @@ class RepoCache(object):
 
         if not hasattr(self, 'version') or self.version != _CACHEVER:
             self.__init__()
+
+        if not hasattr(self, 'events'):
+            self.events = set()
+
+        if len(addevent) > 0:
+            self.events.add(addevent)
 
         #TODO Manage multiple devref
         devref = Config.DEVREF
@@ -827,6 +834,7 @@ class RepoCache(object):
             devref_tocheck[basedevref] = sha_hex
         if len(devref_tocheck) > 0:
             verbose('Changes on devrefs : %s' % devref_tocheck)
+            self.events.add('integration')
             self._load_commitstore()
             self.commitstore.mapnewcommits(devref_tocheck, repo)
 
@@ -868,11 +876,17 @@ class RepoCache(object):
 
         #Check deleted branches (except when new ones are detected)
         if (count - len(created)) < len(self.branches):
+            self.events.add('delete')
             modfeatset, modbranchset = self._cleandeleted(repo)
 
         #Nothing more to do if there are no created nor changed branches
         if len(created) == 0 and len(changed) == 0 and len(modfeatset) == 0:
+            if len(addevent) > 0:
+                self._save_cache()
             return
+
+        if len(created) > 0:    self.events.add('created')
+        if len(changed) > 0:    self.events.add('changed')
 
         #Create new branch object and set heads (just in commits)
         for branch_data in created:
@@ -948,6 +962,14 @@ class RepoCache(object):
             listout.sort(key=_featsort[sort], reverse = reverse)
         return listout
 
+    def read_events(self):
+        if hasattr(self, 'events') and len(self.events) > 0:
+            events = self.events
+            self.events = set()
+            self._save_cache()
+            return events
+
+        return None
 
     def get_feature(self, featname, nocheck = False):
         """ Retrieve a feature object from its name """

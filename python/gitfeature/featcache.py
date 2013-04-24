@@ -1104,7 +1104,7 @@ class RepoCache(object):
 
     def get_pushauto(self, featname):
         """ Return list of branches to push to update a remote feature """
-        feature = self.get_feature(featname)
+        feature = self.get_feature(featname, True)
         pushname = lambda branch: branch.pushname()
         return '\n'.join(imap(pushname,
             chain(

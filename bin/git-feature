@@ -177,6 +177,44 @@ initialize()
     git config --unset alias.featpushall
 }
 
+cleanoldfeat()
+{
+    LIST=$($CMDFEATCACHE featmainbranch state=draft,final local integrated sort=time old=4592000)
+    SELECTLIST=''
+    count=0
+    for feat in $LIST; do
+        SELECTLIST=" $feat $(basename $feat) on $SELECTLIST"
+        count=$((count+1))
+    done
+    #Only continue if there is more than 10 features to remove
+    if [ "$count" -lt 10 ]; then
+        return
+    fi
+
+    if ! multiselect "$SELECTLIST" "These old integrated will be deleted unless you want to archive it."; then
+        $CMDFEATCACHE sync integration
+        return
+    else
+        SELECTED=$(sed 's/"//g;s/\\#/#/g' "$TMPFILE")
+    fi
+
+    for feat in $SELECTED; do
+        branches=$($CMDFEATCACHE locals $feat)
+        for branch in $branches; do
+            echo "Remove branch $branch"
+            git branch -D "$branch"
+        done
+    done
+    $CMDFEATCACHE
+    LIST=$($CMDFEATCACHE featmainbranch state=draft,final local integrated sort=time old=4592000)
+    echo "Archive unselected features"
+    for feat in $LIST; do
+        echo "Archive $feat"
+        git branch -m "$feat" "archive/$(basename "$feat")"
+    done
+    $CMDFEATCACHE
+}
+
 unicref()
 {
     count=0
@@ -433,6 +471,11 @@ fi
 
 if [ -n "$EVENTS" ]; then
     eval "$EVENTS"
+
+    if [ -n "$integration" ]; then
+        #Check old integrated features (older than 1 month)
+        cleanoldfeat
+    fi
 fi
 
 STARTNAMESPACE='start'

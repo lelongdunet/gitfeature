@@ -1013,6 +1013,16 @@ class RepoCache(object):
         """ Return list of branches of the given feature """
         return ' '.join(map(str, self.get_feature(featname).heads()))
 
+    def get_allbranches(self, featname):
+        """ Return all branches of the feature (any state) """
+        return ' '.join(imap(str, self.get_feature(featname).branches))
+
+    def get_locals(self, featname):
+        """ Return all local branches of the feature (any state) """
+        return ' '.join([str(branch) for branch in
+            self.get_feature(featname, True).branches
+            if branch.local])
+
     def get_final(self, featname):
         """ Return the first final branch of the given feature """
         try:

@@ -476,6 +476,12 @@ class Feature(object):
         else:
             self.mainbranch = selectremote
 
+        if self.mainbranch is None:
+            #This is a non regulare case : get a random mainbranch
+            self.error = error.FeatureBadMain()
+            self.mainbranch = self.branches.pop()
+            self.branches.add(self.mainbranch)
+
         verbose('Main branch : %s' % self.mainbranch)
 
         #Check push consistency

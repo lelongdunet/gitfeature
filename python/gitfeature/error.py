@@ -19,6 +19,9 @@ class FeaturePushError(BranchError):
 class FeatureStartError(BranchError):
     pass
 
+class FeatureBadMain(BranchError):
+    pass
+
 class NotWorkingBranchError(BranchError):
     pass
 

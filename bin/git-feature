@@ -21,6 +21,9 @@ GITDIR=.git
 
 if [ "$1" == "_featcache" ]; then
     shift
+    set -e
+    export DEVREF=$(git config workflow.devref)
+    export REMOTE=$(git config workflow.remote)
     $CMDFEATCACHE $@
     exit
 fi
@@ -417,6 +420,8 @@ if ! DEVREF=$(git config workflow.devref); then
     echoerr "The git config workflow.devref parameter must be define"
     exit 6
 fi
+export DEVREF
+export REMOTE=$(git config workflow.remote)
 
 ## Synchronize featcache
 if ! $CMDFEATCACHE; then
@@ -498,7 +503,6 @@ function check_included()
 function check_remote()
 {
     ERR=0
-    REMOTE=$(git config workflow.remote)
     LIST=$(git branch -r --list "$REMOTE/$FINALNAMESPACE"'/*')
     LIST="$LIST $(git branch -r --list "$REMOTE/$DRAFTNAMESPACE"'/*')"
     for b in $LIST; do
@@ -542,7 +546,6 @@ function feat_list()
         ALLFEATS="$ALLFEATS"'\n'"$(branch_list -r --list '*/draft/*')"
     fi
 
-    REMOTE=$(git config workflow.remote)
     ALLFEATS="$(echo -e "$ALLFEATS"|python "$PYPATH/filters.py" "$REMOTE")"
 
 
@@ -613,7 +616,6 @@ elif [ "$DO" == 'tags' ]; then
 
 elif [ "$DO" == 'U' ]; then
     echo "Update remote devel reference : $DEVREF"
-    REMOTE=$(git config workflow.remote)
     echo git push $REMOTE $DEVREF
     git push $REMOTE $DEVREF && \
     git push $REMOTE $(list_feattags refs/markers/devref $DEVREF) && \
@@ -788,7 +790,6 @@ elif [ "$DO" == 'p' ]; then
         FEATURE=updateall
     fi
     echo "Pushing feature $FEATURE"
-    REMOTE=$(git config workflow.remote)
     for branch in $($CMDFEATCACHE pushauto "$FEATURE"); do
         git push -f $REMOTE $branch
     done

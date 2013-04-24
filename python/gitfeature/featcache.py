@@ -4,19 +4,15 @@ from posixpath import join, basename, dirname
 from os.path import exists, join as join_file
 from itertools import imap, chain, ifilterfalse
 from util import verbose, debug, initlog
+from config import Config
 import error
 
 _CACHEVER = 10
 
-_GITDIR = '.git'
-_GITROOT = '.'
-_DEVREF = 'heads/devel'
-_MYREPO = 'mine'
-
-initlog(join_file(_GITDIR, 'featcache.log'))
+initlog(join_file(Config.GITDIR, 'featcache.log'))
 
 def load_cache():
-    pickle_file = join_file(_GITDIR, 'featcache')
+    pickle_file = join_file(Config.GITDIR, 'featcache')
     if exists(pickle_file):
         try:
             repo_cache = cPickle.load(open(pickle_file))
@@ -158,7 +154,7 @@ class Branch(object):
         self.parent = None
         self.trash = []     # List of old commits to delete
 
-        if self.featuser == _MYREPO:
+        if self.featuser == Config.MYREPO:
             #If it results from a pending commit, remove it
             localname = self.localname()
             localbranch = filter(
@@ -220,7 +216,7 @@ class Branch(object):
     def pushname(self):
         if self.local:
             return str(self)
-        elif self.featuser == _MYREPO:
+        elif self.featuser == Config.MYREPO:
             return ':%s' % self.localname()
         else:
             raise error.NoPushAllowedError
@@ -420,7 +416,7 @@ class Feature(object):
         selectremote = None
         self.pushed = False
         for branch in self.branches:
-            if not branch.local and branch.featuser == _MYREPO and (
+            if not branch.local and branch.featuser == Config.MYREPO and (
                     myremotebranch is None or (
                         branch._stateid >= myremotebranch._stateid)
                     ):
@@ -440,7 +436,7 @@ class Feature(object):
             if (
                     not branch.local
                     and branch._stateid >= stateid
-                    and branch.featuser != _MYREPO
+                    and branch.featuser != Config.MYREPO
                     ):
                 if selectremote is None:
                     selectremote = branch
@@ -477,7 +473,7 @@ class Feature(object):
 
         localbranches = {b._stateid:b for b in self.branches if b.local}
         myremotebranches = {b._stateid:b for b in self.branches
-                if b.featuser == _MYREPO}
+                if b.featuser == Config.MYREPO}
 
         #If there is no local branches for it remove everything
         if not self.mainbranch.local:
@@ -743,7 +739,7 @@ class RepoCache(object):
 
     def _load_commitstore(self):
         if not hasattr(self, 'commitstore') or self.commitstore is None:
-            pickle_file = join_file(_GITDIR, 'featstore')
+            pickle_file = join_file(Config.GITDIR, 'featstore')
             if len(self.devrefs) > 0 and exists(pickle_file):
                 self.commitstore = cPickle.load(open(pickle_file))
             else:
@@ -755,13 +751,13 @@ class RepoCache(object):
             f = open('out', 'w')
             f.write(str(self.commitstore))
             f.close()
-            pickle_file = join_file(_GITDIR, 'featstore')
+            pickle_file = join_file(Config.GITDIR, 'featstore')
             cPickle.dump(self.commitstore, open(pickle_file, 'wb', -1))
             del self.commitstore
         else:
             verbose('No save commitstore')
 
-        pickle_file = join_file(_GITDIR, 'featcache')
+        pickle_file = join_file(Config.GITDIR, 'featcache')
         cPickle.dump(self, open(pickle_file, 'wb'), -1)
 
     def check_integrated(self, featname):
@@ -789,16 +785,20 @@ class RepoCache(object):
         """ Sync cache with real state of the repository """
         from dulwich.repo import Repo
 
-        repo = Repo(_GITROOT)
+        repo = Repo(Config.GITROOT)
 
         if not hasattr(self, 'version') or self.version != _CACHEVER:
             self.__init__()
 
         #TODO Manage multiple devref
-        devref = _DEVREF
+        devref = Config.DEVREF
         basedevref = basename(devref)
 
-        sha_hex = repo.ref('refs/%s' % devref)
+        try:
+            sha_hex = repo.ref('refs/remotes/%s' % devref)
+        except KeyError:
+            sha_hex = repo.ref('refs/heads/%s' % devref)
+
         sha = a2b_hex(sha_hex)
         devref_tocheck = {}
         if (not self.devrefs.has_key(basedevref)
@@ -993,7 +993,7 @@ class RepoCache(object):
     def get_smartdepend(self, featname):
         """ Return the real SHA on which to update the branch. """
         #TODO Manage multiple devref
-        devref = self.devrefs[basename(_DEVREF)]
+        devref = self.devrefs[basename(Config.DEVREF)]
         depend = self.get_branch(featname).depend
         if depend is not None and not depend:
             return ''

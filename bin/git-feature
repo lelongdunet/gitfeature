@@ -796,10 +796,12 @@ elif [ "$DO" == 'i' ]; then
 #Push feature
 elif [ "$DO" == 'p' ]; then
     if [ "$FEATURE" == 'all' ]; then
-        FEATURE=updateall
+        LIST=$($CMDFEATCACHE pushlist updateall)
+    else
+        echo "Pushing feature $FEATURE"
+        LIST=$($CMDFEATCACHE pushauto "$FEATURE")
     fi
-    echo "Pushing feature $FEATURE"
-    for branch in $($CMDFEATCACHE pushauto "$FEATURE"); do
+    for branch in $LIST; do
         git push -f $REMOTE $branch
     done
     $CMDFEATCACHE

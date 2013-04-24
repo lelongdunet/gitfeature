@@ -7,7 +7,7 @@ from util import verbose, debug, initlog
 from config import Config
 import error
 
-_CACHEVER = 10
+_CACHEVER = 11
 
 initlog(join_file(Config.GITDIR, 'featcache.log'))
 
@@ -270,15 +270,30 @@ class Branch(object):
             if self.repo_cache.commits.has_key(sha):
                 branches = self.repo_cache.commits[sha].heads
                 #TODO Detect start points in commit message
+                if start is None:
+                    depend_set = set()
+                    start_set = set()
+
                 for branch in branches:
                     if (branch.isstart()
                             and branch.feature == self.feature
                             and start is None):
                         start = branch
+                    elif branch.isstart() and depend is None:
+                        start_set.add(branch.feature)
                     elif(depend is None
                             and branch.isactive()
                             and branch.feature != self.feature):
-                        depend = branch
+                        depend_set.add(branch)
+
+                if start is not None and depend is None:
+                    #Select a depend feature which is not empty
+                    for depend in depend_set:
+                        if depend.feature not in start_set:
+                            break
+
+                    if depend is not None and depend.feature in start_set:
+                        depend = None
 
                 if start is None:   depend = None
                 elif depend is None: depend = self.depend

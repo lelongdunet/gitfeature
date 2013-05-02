@@ -179,7 +179,7 @@ initialize()
 
 cleanoldfeat()
 {
-    LIST=$($CMDFEATCACHE featmainbranch state=draft,final local integrated sort=time old=4592000)
+    LIST=$($CMDFEATCACHE featmainbranch state=draft,final local integrated sort=time old=2592000)
     SELECTLIST=''
     count=0
     for feat in $LIST; do

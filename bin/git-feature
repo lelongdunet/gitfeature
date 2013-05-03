@@ -259,7 +259,8 @@ OPTIONS:
    -i      Include feature in current branch
                 - accept -R (revert) option to cancel last integration
    -l      List all features and indicate if local features must be pushed or not
-                - accept -S to hide information about status
+                - accept -S (silence) to hide information about status
+                - accept -D (date) to sort all display by date
    -m      Move the feature upon a new base
                 > Specify the feature on which you want to move the current feature
    -p      Push the given feature
@@ -296,7 +297,7 @@ EOF
 
 DO='n' # Default action is new feature
 
-while getopts "AFrfm:tb:a:hucvpliRSUsTL" OPTION; do
+while getopts "AFrfm:tb:a:hucvpliRSUsTLD" OPTION; do
     case $OPTION in
         a)
             case $OPTARG in
@@ -359,6 +360,9 @@ while getopts "AFrfm:tb:a:hucvpliRSUsTL" OPTION; do
             ;;
         S)
             SILENT='y'
+            ;;
+        D)
+            DATESORT='y'
             ;;
         c)
             DO='c'
@@ -895,10 +899,14 @@ elif [ "$DO" == 'l' ]; then
         LISTCMD='featstat'
     fi
 
+    if [ "$DATESORT" == 'y' ]; then
+        LISTCMD="$LISTCMD;sort=time"
+    fi
+
     eval "$($CMDFEATCACHE parse \
         "CURRENT=$LISTCMD;state=draft$FILTER" \
         "FINALS=$LISTCMD;state=final$FILTER" \
-        "INCLUDED=$LISTCMD;integrated$FILTER")"
+        "INCLUDED=$LISTCMD;integrated$FILTER;sort=time")"
 
     echo "List local features"
     echo ""

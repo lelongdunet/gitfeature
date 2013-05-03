@@ -885,7 +885,7 @@ elif [ "$DO" == 'v' ]; then
 #List features
 elif [ "$DO" == 'l' ]; then
     #If ARG is not empty it is the remote name
-    if [ "$ALL" == 'y' ]; then
+    if [[ "$ALL" == 'y' || "$ARG" == all ]]; then
         FILTER=''
     elif [ -z "$ARG" ]; then
         FILTER=';local'

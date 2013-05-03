@@ -980,10 +980,21 @@ class RepoCache(object):
     def get_feature(self, featname, nocheck = False):
         """ Retrieve a feature object from its name """
         featname = basename(featname)
+        dependlook = 0
+        while featname[-1] == '^':
+            featname = featname[:-1]
+            dependlook += 1
+
         if not self.features.has_key(featname):
             raise error.NotFoundFeature
         feature = self.features[featname]
-        if not nocheck:
+        while dependlook > 0 and feature is not None:
+            feature = feature.depend()
+            if feature is not None:
+                feature = feature.feature
+            dependlook -= 1
+
+        if not nocheck and feature is not None:
             if feature.mainbranch.error is not None:
                 raise feature.mainbranch.error
             if feature.error is not None:

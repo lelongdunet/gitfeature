@@ -808,6 +808,15 @@ elif [ "$DO" == 'i' ]; then
         exit 1
     fi
 
+    DEP_FEAT=$($CMDFEATCACHE depend "$FEATURE")
+    if [ "$DEP_FEAT" != "None" ]; then
+        if ! $CMDFEATCACHE isintegrated "$DEP_FEAT" 2> /dev/null; then
+            echoerr "Dependancies must be integrated!"
+            echo "Integrate dependency $DEP_FEAT before!"
+            exit 10
+        fi
+    fi
+
     if [ $(echo -e "$FINALS" | wc -l) == 1 ]; then
         CHOSENFINAL="$FINALS"
     else
@@ -935,6 +944,15 @@ elif [ "$DO" == 'f' ]; then
         exit 5
     fi
 
+    if DEP_FINALS=$($CMDFEATCACHE finals "$FEATURE^" 2> /dev/null); then
+        if [ -z "$DEP_FINALS" ]; then
+            echoerr "Dependancies must be in final state"
+            echo "You must set depend feature : $($CMDFEATCACHE depend $FEATURE)"
+            echo "to final state before!"
+            exit 7
+        fi
+    fi
+
     #Check if repo is clean
     if ! git diff --quiet HEAD; then
         echoerr "The repository needs to be clean for this operation."
@@ -946,7 +964,6 @@ elif [ "$DO" == 'f' ]; then
 
     git branch -t $FEATUREFINAL $STARTPOINT
     git branch -f $FEATUREFINAL $DRAFTBRANCH
-    #TODO Check if dependencies are finalized
     #Check if STARTPOINT is in DEVREF line
     if [ $(git rev-list --count $STARTPOINT ^$DEVREF) == 0 ]; then
         git rebase -i $DEVREF $FEATUREFINAL

@@ -811,7 +811,7 @@ elif [ "$DO" == 'i' ]; then
     if [ $(echo -e "$FINALS" | wc -l) == 1 ]; then
         CHOSENFINAL="$FINALS"
     else
-        if ! menuselect "$FINALS" "Choose a final reference for the feature $FEATURE" -d; then
+        if ! menuselect "$FINALS" "Choose a final reference for the feature $FEATURE"; then
             exit
         fi
         CHOSENFINAL=$(<"$TMPFILE")

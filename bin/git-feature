@@ -240,7 +240,7 @@ OPTIONS:
             > close : Check the feature is integrated and destroy all branches
             > clear : Interactively close included features
             > cherry : look for commits that are (not) cherry-picked in DEVREF
-                - accecpt reverse option -R for "not"
+                - accept reverse option -R for "not"
             > checkout : checkout the main branch of the given feature
             > devref : Change the devref ( it must always contain the old one )
             > files : list files modified in all commits of the feature

@@ -1083,6 +1083,7 @@ elif [ "$DO" == 'u' ]; then
         git checkout "$FEATUREBRANCH"
         git reset --hard "$FEATUREBASE"
     else
+        export NEWSTARTPOINT=$FEATUREBASE
         echo git rebase --onto "$FEATUREBASE" "$STARTPOINT" "$FEATUREBRANCH"
         git rebase --onto "$FEATUREBASE" "$STARTPOINT" "$FEATUREBRANCH"
     fi

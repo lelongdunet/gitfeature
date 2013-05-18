@@ -989,18 +989,18 @@ elif [ "$DO" == 'm' ]; then
     fi
 
     STARTPOINT=$(start_point "$FEATUREBRANCH") || exit 1
-    echo '>> '$STARTPOINT
+    echo '>> '"$STARTPOINT"
 
     #If there is start marker or if new base does not coincide with DEVREF,
     # a start_point must be created or moved
-    if git show-ref $FEATURESTART &> /dev/null || test $(git rev-list --count ^$DEVREF $MOVETO) != 0
+    if git show-ref "$FEATURESTART" &> /dev/null || test "$(git rev-list --count ^$DEVREF "$MOVETO")" != 0
     then
-        export NEWSTARTPOINT=$MOVETO
+        export NEWSTARTPOINT="$MOVETO"
     fi
-    SHAFEAT=$(git rev-parse $FEATUREBRANCH)
+    SHAFEAT=$(git rev-parse "$FEATUREBRANCH")
     if [ "$SHAFEAT" == "$STARTPOINT" ]; then
         echo "Move empty feature"
-        if [ "$(git rev-list --count ^$DEVREF $MOVETO)" != "0" ]; then
+        if [ "$(git rev-list --count ^$DEVREF "$MOVETO")" != "0" ]; then
             git branch -f "$FEATURESTART" "$MOVETO"
         else
             git branch -D "$FEATURESTART" 2> /dev/null
@@ -1009,8 +1009,8 @@ elif [ "$DO" == 'm' ]; then
         git reset --hard "$MOVETO"
         $CMDFEATCACHE
     else
-        echo git rebase --onto $MOVETO $STARTPOINT $FEATUREBRANCH
-        git rebase --onto $MOVETO $STARTPOINT $FEATUREBRANCH
+        echo git rebase --onto "$MOVETO" "$STARTPOINT" "$FEATUREBRANCH"
+        git rebase --onto "$MOVETO" "$STARTPOINT" "$FEATUREBRANCH"
     fi
     exit
 

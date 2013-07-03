@@ -257,7 +257,12 @@ class Branch(object):
         else:
             sha = self.commit.sha
 
-        commit = repo.commit(sha)
+        try:
+            commit = repo.commit(sha)
+        except KeyError as e:
+            self.error = e
+            return
+
         self.time = commit.commit_time
 
         #Reset related errors

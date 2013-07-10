@@ -1,5 +1,9 @@
 import logging
 import logging.handlers
+from sys import stderr
+
+def print_err(msg):
+    stderr.write('> %s\n' % msg)
 
 def initlog(log_filename):
     logger = logging.getLogger()

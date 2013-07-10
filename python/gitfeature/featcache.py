@@ -3,7 +3,7 @@ from binascii import a2b_hex, b2a_hex
 from posixpath import join, basename, dirname
 from os.path import exists, join as join_file
 from itertools import imap, chain, ifilterfalse
-from util import verbose, debug, initlog
+from util import verbose, debug, initlog, print_err
 from config import Config
 import error
 

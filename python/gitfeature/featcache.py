@@ -1013,6 +1013,13 @@ class RepoCache(object):
         except:
             return feat.mainbranch
 
+    def get_dereference(self, branchname):
+        try:
+            feat = self.get_feature(branchname)
+            return feat.mainbranch
+        except error.NotFoundFeature:
+            return branchname
+
     def get_isfeaturebranch(self, branchname):
         """ Check if the given branch is related to an existing feature """
         try:

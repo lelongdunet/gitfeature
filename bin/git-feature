@@ -54,6 +54,24 @@ IMPORTANT="$NORMAL$UNDERLINE$GREEN"
 TITLE="$NORMAL$UNDERLINE$BOLD"
 HIGHLIGHT="$NORMAL$GREENBOLD"
 
+function yesno()
+{
+    DEFAULT=$2
+    if [ "$DEFAULT" == "n" ]; then
+        CHECK="y"
+        echo "$1 [N/y]"
+    else
+        CHECK="n"
+        echo "$1 [n/Y]"
+    fi
+
+    read YESNO
+    if [ "$YESNO" == "$CHECK" ]; then
+        return 1
+    fi
+    return 0
+}
+
 echoerr()
 {
     echo -e "$ERRCOL$1$NORMAL" >&2
@@ -104,6 +122,18 @@ function is_local()
     return 1
 }
 
+default_assign()
+{
+    if [ -n "$1" ]; then
+        echo "$1"
+    elif [ -n "$2" ]; then
+        echo "$2"
+    else
+        echoerr "No valid branch provided!"
+        return 1
+    fi
+    return 0
+}
 
 initialize()
 {
@@ -297,6 +327,59 @@ The following alias can be used:
 
 EOF
 }
+
+if [ "$1" == "_branch" ]; then
+    CURRENT=$(git symbolic-ref HEAD 2> /dev/null)
+    CURRENTBRANCH=${CURRENT##refs/heads/}
+
+    case "$2" in
+        "D") CMD='del'
+            ;;
+        "M") CMD='move'
+            ;;
+        *) CMD="$2"
+    esac
+
+    case "$CMD" in
+        "del")
+            BRANCHNAME="$(default_assign "$3" "$CURRENTBRANCH")" || exit
+            yesno "Are you sure you want to delete the branch $BRANCHNAME" 'n' \
+                && exit
+
+            if [ "$BRANCHNAME" == "$CURRENTBRANCH" ]; then
+                git checkout "$(git rev-parse HEAD)"
+            fi
+
+            echo git branch -D "$BRANCHNAME"
+            git branch -D "$BRANCHNAME"
+            ;;
+        "move")
+            if [ $# == 4 ]; then
+                NEWSPACE="$4"
+                BRANCHNAME="$(default_assign "$3" "$CURRENTBRANCH")" || exit
+            elif [ $# == 3 ]; then
+                NEWSPACE="$3"
+                BRANCHNAME="$CURRENTBRANCH"
+                if [ -z "$CURRENTBRANCH" ]; then
+                    echoerr "No valid current branch"
+                    exit
+                fi
+            else
+                echoerr "1 or 2 arguments must be provided to this command"
+                exit
+            fi
+            if [ "$BRANCHNAME" == "$CURRENTBRANCH" ]; then
+                git checkout "$(git rev-parse HEAD)"
+            fi
+
+            NEWNAME="${NEWSPACE%%/}/$(basename "$BRANCHNAME")"
+            echo git branch -m "$BRANCHNAME" "$NEWNAME"
+            git branch -m "$BRANCHNAME" "$NEWNAME"
+            ;;
+    esac
+    exit
+fi
+
 
 ################################################################################
 #   Get arguments

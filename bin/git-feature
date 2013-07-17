@@ -771,12 +771,12 @@ elif [ "$DO" == 'U' ]; then
 
 elif [ "$DO" == 'diff' ]; then
     STARTPOINT=$(feature_root $FEATUREBRANCH) || exit 1
-    git diff "$STARTPOINT" "$FEATUREBRANCH"
+    git diff "$STARTPOINT" "$($CMDFEATCACHE dereference "$FEATUREBRANCH")"
     exit
 
 elif [ "$DO" == 'files' ]; then
     STARTPOINT=$(feature_root $FEATUREBRANCH) || exit 1
-    git diff --name-only "$STARTPOINT" "$FEATUREBRANCH"
+    git diff --name-only "$STARTPOINT" "$($CMDFEATCACHE dereference "$FEATUREBRANCH")"
     exit
 
 elif [ "$DO" == 's' ]; then
@@ -1085,6 +1085,8 @@ elif [ "$DO" == 'm' ]; then
     STARTPOINT=$(start_point "$FEATUREBRANCH") || exit 1
     echo '>> '"$STARTPOINT"
 
+    MOVETO="$(git feature _featcache branch "$MOVETO")"
+    echo "Moving on $MOVETO..."
     #If there is start marker or if new base does not coincide with DEVREF,
     # a start_point must be created or moved
     if git show-ref "$FEATURESTART" &> /dev/null || test "$(git rev-list --count ^$DEVREF "$MOVETO")" != 0
@@ -1320,6 +1322,8 @@ else
 
     if [ -z "$FOLLOW" ]; then
         FOLLOW="$DEVREF"
+    else
+        FOLLOW="$(git feature _featcache branch "$FOLLOW")"
     fi
 fi
 

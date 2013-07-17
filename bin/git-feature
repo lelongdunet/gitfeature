@@ -9,7 +9,7 @@ PYPATH="$(dirname "$(readlink -f "$0")")"/../python
 CMDFEATCACHE="python $PYPATH/featmain.py"
 TMPFILE=/tmp/featuretmp.$USER
 HOOKRELPATH=../hooks
-VER="v0.2.02"
+VER="v0.2.04"
 
 
 if ! GITDIR="$(git rev-parse --git-dir)"; then
@@ -200,6 +200,11 @@ initialize()
     git config alias.feattest "feature -T"
     git config alias.featclear "feature -a clear"
     git config alias.featco "feature -a checkout"
+
+    git config alias.feat "feature -a"
+
+    git config alias.branchdel "feature _branch del"
+    git config alias.branchmove "feature _branch move"
 
     git config --unset alias.featcherry
     git config --unset alias.featclose

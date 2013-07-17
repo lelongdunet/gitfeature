@@ -40,6 +40,9 @@ if CURRENT=$(git symbolic-ref HEAD 2> /dev/null); then
     CURRENTBRANCH=${CURRENT##refs/heads/}
     CURRENTFEAT=$(basename $CURRENT)
 
+    #Refresh cache
+    git feature _featcache
+
     if MAINBRANCH="$(git feature _featcache mainbranch "$CURRENTFEAT" 2> /dev/null)"; then
         if ! FEATSTATE="$(git feature _featcache state "$CURRENTFEAT")"; then
             echo "########### -- ERROR -- ###################"
@@ -97,7 +100,6 @@ if CURRENT=$(git symbolic-ref HEAD 2> /dev/null); then
             echo "------------------------------------------"
             exit 1
         fi
-        $CMDFEATCACHE
     fi
 fi
 

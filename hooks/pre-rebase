@@ -58,21 +58,15 @@ if [[ "$CURRENTNAMESPACE" == "$DRAFTNAMESPACE" || "$CURRENTNAMESPACE" == "$FINAL
     echo $CURRENT > "$FEATREBASEDIR"/current
     echo $@ > "$FEATREBASEDIR"/args
 
-    #Check if the start point is between the branch and the DEVREF line
+    #Check if the base point is between the branch and the DEVREF line
     notindevref=$(git rev-list "$basebranch" "^$DEVREF")
     onlyinbase=$(git rev-list "$basebranch" "^$DEVREF" "^$CURRENTBRANCH")
+    starthash=$(git feature _featcache start "$CURRENTFEAT")
     if [ ! "$onlyinbase" == "$notindevref" ]; then
         #The start point does not coincide with devref
-        if starthash=$(git rev-parse $STARTNAMESPACE/$CURRENTFEAT 2> /dev/null); then
-            if [[ ! "$starthash" == "$(git rev-parse $basebranch)" ]]; then
-                echo "########### -- ERROR -- ###################"
-                echo "The feature start point does not feat the base!"
-                exit 1
-            fi
-        else
+        if [[ ! "$starthash" == "$(git rev-parse $basebranch)" ]]; then
             echo "########### -- ERROR -- ###################"
-            echo "No local startpoint defined for the feature $CURRENTFEAT"
-            echo "Please set your startpoint if you don't rebase from $DEVREF"
+            echo "The feature start point does not feat the base!"
             exit 1
         fi
         echo $STARTNAMESPACE/$CURRENTFEAT > "$FEATREBASEDIR/start"
@@ -91,6 +85,7 @@ if [[ "$CURRENTNAMESPACE" == "$DRAFTNAMESPACE" || "$CURRENTNAMESPACE" == "$FINAL
     if [ -n "$NEWSTARTPOINT" ]; then
         echo $STARTNAMESPACE/$CURRENTFEAT > "$FEATREBASEDIR/start"
         echo $NEWSTARTPOINT > "$FEATREBASEDIR/newstart"
+        echo $starthash > "$FEATREBASEDIR/oldstart"
     fi
 
     #Record the first commit of the branch

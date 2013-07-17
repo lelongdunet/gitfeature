@@ -1,4 +1,5 @@
 from featcache import load_cache
+import display
 from error import NotFoundFeature
 from itertools import imap, chain
 
@@ -124,6 +125,10 @@ def process(argv, repo_cache):
                 return "o=o;%s" % ';'.join([
                     '%s=y' % event for event in events])
         return ''
+    elif argv[0] == '_disp':
+        display.debug_disp()
+        return ''
+
     elif argv[0] == '_featdetail':
         lines = []
         for f in repo_cache.features.itervalues():
@@ -131,6 +136,10 @@ def process(argv, repo_cache):
 
         return '\n'.join(lines)
         #l=[f for f in repo_cache.features.itervalues() if f.mainbranch is None]
+
+    elif argv[0] == 'featshow':
+        disp = display.TermDisp()
+        return display.show_feature(disp, repo_cache, argv[1])
 
     elif listfunc_dict.has_key(argv[0]):
         func = listfunc_dict[argv[0]]

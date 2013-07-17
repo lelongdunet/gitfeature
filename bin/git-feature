@@ -290,6 +290,7 @@ OPTIONS:
             > init : Initialize current repository to handle features
             > merge : Merge all features in a single branch
             > update : Update the specified feature using rebase
+            > show : Show informations about specified feature
             > view : View local features and there remote updates
                 - accept full option -F to see all commits of DEVREF
             > version : Display git feature version
@@ -327,6 +328,7 @@ The following alias can be used:
     > featupdate		"feature -u"
     > featintegrate		"feature -i"
     > feattest			"feature -T"
+    > featshow			"feature -a show"
     > featview			"feature -v"    (see -a view)
     > featlist			"feature -l"
 
@@ -423,6 +425,9 @@ while getopts "AFrfm:tb:a:hucvpliRSUsTLD" OPTION; do
                     ;;
                 files)
                     DO='files'
+                    ;;
+                show)
+                    DO='show'
                     ;;
                 view)
                     DO='v'
@@ -782,6 +787,10 @@ elif [ "$DO" == 'diff' ]; then
 elif [ "$DO" == 'files' ]; then
     STARTPOINT=$(feature_root $FEATUREBRANCH) || exit 1
     git diff --name-only "$STARTPOINT" "$($CMDFEATCACHE dereference "$FEATUREBRANCH")"
+    exit
+
+elif  [ "$DO" == 'show' ]; then
+    $CMDFEATCACHE featshow "$FEATUREBRANCH"
     exit
 
 elif [ "$DO" == 's' ]; then

@@ -613,6 +613,19 @@ class Feature(object):
         children = lambda branch: branch.children
         return set().union(*imap(children, self.branches))
 
+    def relatedfeatures(self):
+        """ Return the set of features that can be altered
+            by the modification of this feature. """
+        children = lambda branch: branch.children
+        branchfeat = lambda branch: branch.feature
+        return set(
+                imap(branchfeat,
+                    chain(
+                        *imap(children, self.branches)
+                        )
+                    )
+                )
+
     def __str__(self):
         return self.name
 

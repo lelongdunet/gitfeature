@@ -226,6 +226,12 @@ unicref()
     echo $name$count
 }
 
+display_ver()
+{
+    echo "Git feature $VER"
+    echo ""
+}
+
 usage()
 {
 cat << EOF
@@ -251,6 +257,7 @@ OPTIONS:
             > update : Update the specified feature using rebase
             > view : View local features and there remote updates
                 - accept full option -F to see all commits of DEVREF
+            > version : Display git feature version
             > view all : View local features and all updated remote features
    -b      Give a specific branch on which to base the new feature
    -c      Check feature (push and final)
@@ -342,6 +349,10 @@ while getopts "AFrfm:tb:a:hucvpliRSUsTLD" OPTION; do
                     ;;
                 close)
                     DO='C'
+                    ;;
+                version)
+                    display_ver
+                    exit
                     ;;
 				tags)
 					DO='tags'

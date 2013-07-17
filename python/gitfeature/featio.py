@@ -66,7 +66,7 @@ def pushlist(repo_cache, updateall = False):
                     *[f.pushlist() for f in repo_cache.features.itervalues()
                         if f.needpush()])))
 
-def featstat(repo_cache, markpush = 'ox ', markupdate = '* ', **args):
+def featstat(repo_cache, markpush = 'o+ ', markupdate = '* ', **args):
     listout = []
     for feat in repo_cache.listfeat(**args):
         if (not feat.mainbranch.local) or feat.integrated or feat.pushuptodate:

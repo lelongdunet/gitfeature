@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -e
+
+if ! which dia; then
+    echo 'dia program is needed'
+    echo 'Install the related package'
+    exit 1
+fi
+
+cd img
+make
+cd -
+pdflatex workflow.tex
+

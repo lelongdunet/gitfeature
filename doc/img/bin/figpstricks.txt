@@ -1,0 +1,25 @@
+\documentclass{article}
+\usepackage{pst-eps} 
+\usepackage{pst-grad} 
+\usepackage{graphicx}
+%\input tmp.inputs
+\usepackage[french]{babel}             % Langue du document
+\usepackage[T1]{fontenc}               % Correspondance clavier -> document
+\usepackage[utf8]{inputenc}
+\pagestyle{empty}
+\usepackage{amssymb,amsbsy}
+\usepackage{verbatim}
+
+\usepackage{pifont}
+
+\input ../util/myCommands
+%\input ../Modele/Police
+
+\begin{document}
+\TeXtoEPS
+
+INSERT_FIG
+
+\endTeXtoEPS
+
+\end{document}

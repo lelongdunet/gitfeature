@@ -1,0 +1,47 @@
+% Aligné à gauche, suivi d'un filet horizontal, légèrement dans la marge
+\makeatletter
+\def\section{\@ifstar\unnumberedsection\numberedsection}
+\def\numberedsection{\@ifnextchar[%]
+  \numberedsectionwithtwoarguments\numberedsectionwithoneargument}
+\def\unnumberedsection{\@ifnextchar[%]
+  \unnumberedsectionwithtwoarguments\unnumberedsectionwithoneargument}
+\def\numberedsectionwithoneargument#1{\numberedsectionwithtwoarguments[#1]{#1}}
+\def\unnumberedsectionwithoneargument#1{\unnumberedsectionwithtwoarguments[#1]{#1}}
+\def\numberedsectionwithtwoarguments[#1]#2{%
+  \ifhmode\par\fi
+  \removelastskip
+  \vskip 5ex\goodbreak
+  \refstepcounter{section}%
+  \hbox to \hsize{\hss\vbox{\advance\hsize by 1cm
+      \noindent
+      \leavevmode\Large\scshape\raggedright
+      \thesection.\ 
+      #2\par
+      \vskip -2ex
+      \noindent\hrulefill
+      }}\nobreak
+  \vskip 2ex\nobreak
+  \addcontentsline{toc}{section}{%
+    \protect\numberline{\thesection}%
+    #1}%
+  }
+\def\unnumberedsectionwithtwoarguments[#1]#2{%
+  \ifhmode\par\fi
+  \removelastskip
+  \vskip 5ex\goodbreak
+%  \refstepcounter{section}%
+  \hbox to \hsize{\hss\vbox{\advance\hsize by 1cm
+      \noindent
+      \leavevmode\Large\bfseries\raggedright
+%      \thesection\ 
+      #2\par
+      \vskip -2ex
+      \noindent\hrulefill
+      }}\nobreak
+  \vskip 2ex\nobreak
+  \addcontentsline{toc}{section}{%
+%    \protect\numberline{\thesection}%
+    #1}%
+  }
+\makeatother
+

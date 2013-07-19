@@ -1,0 +1,55 @@
+%------------ PDF -------------------------------------------------------------
+\hypersetup{                                        % Information sur le document
+    pdfauthor   = {A Lelong},                     % Auteurs
+    pdftitle    = {Git-feature documentation},     % Titre du document
+    pdfsubject  = {},      % Sujet
+    pdfkeywords = {git, rebase, workflow},                               % Mots-clefs
+    pdfcreator  = {Latex},                   % Logiciel qui a crée le document
+    pdfproducer = {},                                % Société avec produit le logiciel
+    pdfborder         = {0 0 0},                 % Style de bordure : ici, pas de bordure
+    plainpages  = true}
+
+%------------ TIKZ --------------------------------------------
+%\usetikzlibrary{arrows}%
+\usetikzlibrary{arrows,shapes,trees,mindmap,snakes,backgrounds,calc}
+
+
+\pgfdeclarelayer{background}
+\pgfdeclarelayer{foreground}
+\pgfsetlayers{background,main,foreground}
+
+%-------------INTERLIGNE-------------------------------------------------
+%%\renewcommand{\baselinestretch}{2}
+%%Interligne entre deux paragraphes
+%\parskip = 5pt
+%%Autres package
+\usepackage{ulem}
+\usepackage{lmodern}           % pour générer de "beaux" fichiers PDF
+
+%-------------ENTTE-ET-PIED-DE-PAGE-------------------------------------------
+\pagestyle{fancy}
+
+% Ceci permet d~avoir les noms de chapitre et de section
+% en minuscules
+%\renewcommand{\chaptermark}[1]{\markboth{#1}{}}%minuscules
+\renewcommand{\sectionmark}[1]{\markright{#1}} %minuscules
+\renewcommand{\subsectionmark}[1]{} %minuscules
+
+%\lhead[\includegraphics[width=2cm]{imgbin/logo.png}]{\rightmark}
+\lhead[gdfgd]{\rightmark}
+\rhead[\leftmark]{\includegraphics[width=2cm]{imgbin/logo.png}}
+
+
+\renewcommand{\headrulewidth}{0.3pt} % filet en haut
+\renewcommand{\footrulewidth}{0.3pt} % filet en bas
+\addtolength{\headheight}{2pt} % espace pour le filet
+
+
+%-------------REGLAGE DES MARGES-------------------------------------------------
+
+
+\usepackage{vmargin}            % redéfinir les marges
+% Marge gauche, haute, droite, basse; espace entre la marge et le
+% texte à gauche, en haut, à droite, en bas
+\setmarginsrb{25mm}{20mm}{20mm}{35mm}{5pt}{8mm}{0pt}{20mm}
+

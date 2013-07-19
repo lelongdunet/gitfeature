@@ -1,0 +1,78 @@
+\documentclass[10pt,a4paper]{article}          % Type de document
+
+%Police et jeu de caractère par défaut du documentme
+\usepackage[utf8]{inputenc}
+
+%--------------CONFIGURATION DU DOCUMENTS---------------------------------------
+
+\input util/config
+
+\input util/myCommands
+\input util/custom
+
+%Some optionnal alternative font
+%\usepackage{iwona}
+
+\input{util/custom_sections}
+\definecolor{light-gray}{gray}{0.95}
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+\usepackage{listings}
+\lstset{ %
+    language=bash,                % choose the language of the code
+    basicstyle=\small,       % the size of the fonts that are used for the code
+    numbers=none,                   % where to put the line-numbers
+    numberstyle=\footnotesize,      % the size of the fonts that are used for the line-numbers
+    stepnumber=1,                   % the step between two line-numbers. If it is 1 each line will be numbered
+    numbersep=5pt,                  % how far the line-numbers are from the code
+    backgroundcolor=\color{light-gray},  % choose the background color. You must add \usepackage{color}
+    showspaces=false,               % show spaces adding particular underscores
+    showstringspaces=false,         % underline spaces within strings
+    showtabs=false,                 % show tabs within strings adding particular underscores
+    frame=single,           % adds a frame around the code
+    tabsize=4,          % sets default tabsize to 2 spaces
+    captionpos=b,           % sets the caption-position to bottom
+    breaklines=true,        % sets automatic line breaking
+    breakatwhitespace=false,    % sets if automatic breaks should only happen at whitespace
+    keywordstyle=\color{blue},          % keyword style
+    commentstyle=\color{dkgreen},       % comment style
+    stringstyle=\color{mauve},         % string literal style
+}
+
+% Title Page
+\title{
+\begin{Titre}
+%\Large{\textsc{Reflecom}}\\                %Titre principale
+\includegraphics[width=4cm]{imgbin/logo.png}\\                %Titre principale
+\textsc{\textbf{Git segmented rebase workflow}} \\   %Sous titre 1
+\end{Titre}
+}
+\author{}
+
+\date{}%\fbox{}}
+
+
+\begin{document}
+
+\maketitle			%Affichage de la page de garde
+
+\renewcommand{\labelitemi}{\ding{226}}  %Triangle en relief
+\newcommand{\DEVREF}{\texttt{DEVREF}}
+
+% ------------- Intro du document ------------------
+
+
+\tableofcontents	%Affichage de la table des matières
+
+%Interligne entre deux paragraphes
+\parskip = 10pt
+\pagestyle{fancy}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%    Document content HERE    %%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\input{content}
+\end{document}
+

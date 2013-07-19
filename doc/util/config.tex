@@ -1,0 +1,173 @@
+%-------------PDF-------------------------------------------------------------
+
+%Passage au PDF de qualité
+\usepackage[pdftex]{graphicx, color}       % insertion images et couleurs
+%\DeclareGraphicsExtensions{.jpg,.png,.pdf}          % Formats d'images
+%\pdfcompresslevel=9
+\usepackage{pslatex}                               % Polices PDF, moins lourdes et non bitmap
+
+
+\usepackage[pdftex]{thumbpdf}                   % vignettes sur acrobat 5.0 ou sup
+\usepackage[francais]{layout}
+
+\usepackage[pdftex,                             %   Paramétrage de la navigation
+    bookmarks         = true,                       % Signets
+    bookmarksnumbered = true,                       % Signets numérotés
+    pdfpagemode       = None,                   % Signets/vignettes fermé à l'ouverture
+    pdfstartview      = FitH,                   % La page prend toute la largeur
+    pdfpagelayout     = OneColumn,              % Vue par page
+    colorlinks        = false,                   % Liens en couleur
+    urlcolor          = blue                       % Couleur des liens externes
+    ]{hyperref}%                                % Utilisation de HyperTeX
+
+\usepackage{pdfpages}                               % permet d'inclure des fichiers entiers pdf
+
+
+%-------------PACKAGES---------------------------------------------------------
+\usepackage{fancyhdr}                               % entete et pied de pages
+\usepackage[Conny]{fncychap}												%Présentation des chapitres
+																		%Options: Sonny, Lenny, Glenn, Conny, Rejne and Bjarne
+\usepackage[outerbars]{changebar}                   % positionnement barre en marge externe
+\usepackage{makeidx}                               % Indexation du document
+\usepackage{multicol}                               % gestion plusieurs colonnes
+\usepackage{a4wide}                                 % utilisation de toute la page A4
+\usepackage{lastpage}                               % avoir la derniere page
+\usepackage{verbatim}                               % Texte non interprété
+\usepackage{pifont}					    %Caracteres additionnels (pifont)
+\usepackage{stmaryrd}
+\usepackage{textcomp}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{colortbl}
+\usepackage{tikz}
+
+
+%-------------DECLARATIONS6----------------------------------------------------
+\definecolor{gris25}{gray}{0.75}
+
+\newcommand{\boite}[1]
+{\begin{minipage}{5cm}\smallskip#1\smallskip\end{minipage}}
+\newcommand{\link}[1]
+{\href{#1}{#1}}
+
+%%%% -- Abréviations latines -- %%%%
+\newcommand{\cf}{\textit{c.f.} : } %confer
+\newcommand{\ie}{\textit{i.e.} : } %id est
+\newcommand{\eg}{\textit{e.g.} : } %exempli gratia
+\newcommand{\ehgo}{\textit{e.h.g.o} : } %et hoc genus omne
+\newcommand{\etc}{\textit{etc.} : } %et cetera
+\newcommand{\id}{\textit{id.}, } %idem
+\newcommand{\idq}{\textit{i.q.} } %idem quo
+\newcommand{\IF}{\textit{in fine} } %in fine : a la fin
+%\newcommand{\if}{\textit{i.f.} } %in fine
+\newcommand{\pa}{\textit{p.a.} : } %par annum : par an
+\newcommand{\ps}{\textit{p.s.} : } %post scriptum
+\newcommand{\qv}{\textit{q.v.} : } %quod vide : vu autrepart
+\newcommand{\qqv}{\textit{qq.v.} : } %quae vide : pluriel
+\newcommand{\vs}{\textit{v.s.} } %versus
+\newcommand{\viceversa}{\textit{vice versa} } %et réciproquement
+
+%Insertion d'espaces dans les listes
+\newcommand{\itemsp}{\medskip \item }
+
+\newenvironment{Titre}[1][15cm]{%
+\begin{center}
+\newlength{\LigLen}
+\setlength{\LigLen}{#1}
+\rule[1ex]{\LigLen}{0.5mm}\\
+\mbox{}}{%
+\par\rule[1ex]{\LigLen}{0.5mm}
+\end{center}}
+
+%%Definition des envirronements type 'theoremes'
+\newtheorem{rem}{Remarque}[section]
+%%Mise en place d'index
+\usepackage{makeidx}
+\makeindex
+
+%%%% Macro pour mise en valeur de première lettre d'un paragraphe %%%%
+%%Commande \cappar à placer avant la première lettre
+%Liste des familles : yswab, ygoth, yfrak, cmbx12
+\font\capfont= cmbx12 at 50 pt % = Famille de police 'at' Taille
+
+\newbox\capbox \newcount\capl \def\a{A}
+\def\docappar{\medbreak\noindent\setbox\capbox\hbox{%
+\capfont\a\hskip0.15em}\hangindent=\wd\capbox%
+\capl=\ht\capbox\divide\capl by\baselineskip\advance\capl by1%
+\hangafter=-\capl%
+\hbox{\vbox to8pt{\hbox to0pt{\hss\box\capbox}\vss}}}
+\def\cappar{\afterassignment\docappar\noexpand\let\a }
+%%%% fin macro %%%%
+
+%-------------CONFIGURATION LISTINGS ----------------------------------------------------
+
+\usepackage{listings}																%Insertion de codes sources
+
+\newcommand{\lstconfigcpp}
+{
+    \lstset{language=C++}
+    \lstset{% general command to set parameter(s)
+        %-----Police et coloration syntaxique
+            basicstyle=\small \ttfamily, % print whole listing small
+            keywordstyle=\color{black}\bfseries\underbar,
+            ndkeywordstyle=\color{blue}\bfseries,
+            identifierstyle=, 					% nothing happens
+                commentstyle=\color{cyan} \itshape, % white comments
+                stringstyle=\color{red}, 		% typewriter type for strings
+                showstringspaces=false 			% no special string spaces
+                columns=fullflexible,				%Sans ca, tabsize fonctionne pas
+                tabsize=4,									%Nombre d'espace = tab
+                %-----Numéros de ligne -----------
+                numbers=left,								%Numeros à gauche
+                numberstyle=\small \itshape,					%Style des numéros de lignes
+                stepnumber=1,								%Fréquence de numérotation
+                numbersep=5pt,							%Marge entre les numeros de ligne et le code
+                %-----Options diverses-----------
+                mathescape=true,						%Possibilite de passer en mode math avec $
+                breaklines=true,						%Cassure des lignes trop longues
+                %-----Mise en page:frame----------
+                frame=shadowbox,						%Frame en relief (ou lines, single)
+                %frameround={t}{t}{t}{t},		%BBords arrondis
+                rulesepcolor=\color{black}, %Couleur des relief des frame
+                framexleftmargin=10mm				%Marge nécessaire pour les numéros de ligne
+    }
+}
+
+\newcommand{\lstconfigmatlab}
+{
+    \lstset{language=Matlab}
+    \lstset{% general command to set parameter(s)
+        %-----Police et coloration syntaxique
+            basicstyle=\small \ttfamily, % print whole listing small
+            keywordstyle=\color{blue}\bfseries,
+            %ndkeywordstyle=\color{blue}\bfseries,
+            identifierstyle=, 					% nothing happens
+                commentstyle=\color{cyan} \itshape, % white comments
+                stringstyle=\color{red}, 		% typewriter type for strings
+                showstringspaces=false 			% no special string spaces
+                columns=fullflexible,				%Sans ca, tabsize fonctionne pas
+                tabsize=4,									%Nombre d'espace = tab
+                %-----Numéros de ligne -----------
+                numbers=left,								%Numeros à gauche
+                numberstyle=\small \itshape,					%Style des numéros de lignes
+                stepnumber=1,								%Fréquence de numérotation
+                numbersep=5pt,							%Marge entre les numeros de ligne et le code
+                %-----Options diverses-----------
+                mathescape=true,						%Possibilite de passer en mode math avec $
+                breaklines=true,						%Cassure des lignes trop longues
+                %-----Mise en page:frame----------
+                frame=shadowbox,						%Frame en relief (ou lines, single)
+                %frameround={t}{t}{t}{t},		%BBords arrondis
+                rulesepcolor=\color{black}, %Couleur des relief des frame
+                framexleftmargin=5mm				%Marge nécessaire pour les numéros de ligne
+    }
+}
+
+\newenvironment{lstpage}
+{
+    \begin{minipage}[t]{.43\linewidth}
+    \begin{lstlisting}[numbers=left]}
+{\end{lstlisting}\end{minipage}}
+
+

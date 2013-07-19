@@ -1,0 +1,227 @@
+\usepackage{pgf,pgfcore,tikz}
+%\usepackage{tikz-3dplot}
+\usepackage{pgfplots}
+\usetikzlibrary{arrows,shapes,matrix,snakes,mindmap,backgrounds,plotmarks,calc,automata}%,shadows}
+%\usetikzlibrary{shadows}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%% Commandes pour dessiner des reseaux %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\branch}[8]{%
+  \pgfmathsetmacro{#3}{cos(#6 r)* #5}
+  \pgfmathsetmacro{#4}{sin(#6 r)* #5}
+  \draw[thick] (#1,#2) -- (#1 +#3,#2 +#4) node[above,pos=#8] {#7};}
+
+\newcommand{\branchcoil}[8]{%
+  \pgfmathsetmacro{#3}{cos(#6 r)* #5}
+  \pgfmathsetmacro{#4}{sin(#6 r)* #5}
+  \draw[thick,snake=snake,line after snake=0pt, segment aspect=0,segment length=5pt,segment amplitude=1pt] (#1,#2) -- (#1 +#3,#2 +#4) node[above,pos=#8] {#7};}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%% Commandes pour marquer les longueurs %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\drawlen}[7]{%
+%
+% IN:
+%  - x
+%  - y
+%  - l
+%  - topdash
+%  - botdash
+%  - text
+% OUT:
+%  - xend
+%
+  \pgfmathsetmacro{#7}{#1+#3*\coeflen}
+%Draw arrow
+  \draw[<->,very thick,color=violet!50!green] (#1,#2) -- (#7, #2)
+  node [midway,anchor=south,inner sep=2pt, outer sep=1pt]{#6};
+\draw[thick,dotted,color=violet!50!green] (#7,#4) -- (#7, #5);}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\drawcriticlen}[7]{%
+%
+% IN:
+%  - x
+%  - y
+%  - l
+%  - topdash
+%  - botdash
+%  - text
+% OUT:
+%  - xend
+%
+  \pgfmathsetmacro{#7}{#1+#3*\coeflen}
+%Draw arrow
+  \draw[<->,very thick,color=red] (#1,#2) -- (#7, #2)
+  node [midway,anchor=south,inner sep=2pt, outer sep=1pt]{#6};
+\draw[very thick,dotted,color=red] (#7,#4) -- (#7, #5);}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\drawlostlen}[7]{%
+%
+% IN:
+%  - x
+%  - y1
+%  - y2
+%  - l
+%  - topdash
+%  - botdash
+% OUT:
+%  - xend
+%
+  \pgfmathsetmacro{#7}{#1+#4*\coeflen}
+%Draw arrow
+  \filldraw[fill=violet!50!green,opacity=.2] (#1,#2) rectangle (#7, #3);
+\draw[thick,dotted,color=violet!50!green] (#7,#5) -- (#7, #6);}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\tikzstyle{na} = [baseline=-.5ex]
+\tikzstyle{markNode} = [rounded corners, anchor=base]
+\newcommand{\tknode}[1]{\tikz[na]\node [coordinate] (#1) {};}
+%\pgfplotsset{every axis x label/.append style={xlabel near ticks}}
+%\pgfplotsset{every axis y label/.append style={ylabel near ticks}}
+\pgfplotsset{xlabel near ticks}
+\pgfplotsset{ylabel near ticks}
+
+\newcommand{\inputplot}[1]{\tiny\input{#1}}
+
+%Commandes associées aux notations mathématiques
+\newcommand{\tenseur}[1]{\stackrel{\Rightarrow}{#1}}
+\newcommand{\M}[1]{\mathbf{#1}}
+\newcommand{\V}[1]{\boldsymbol{\mathbf{\underline{#1}}}}
+\newcommand{\Ves}[1]{\hat{\V{#1}}}
+\renewcommand{\H}{\mathbf{H}}
+\newcommand{\T}{\mathbf{T}}
+\newcommand{\Prob}{\mathbb{P}}
+\newcommand{\E}[1]{\mathbb{E}\left\{{#1}\right\}}
+\newcommand{\Ep}[1]{\mathbb{E}\left({#1}\right)}
+\newcommand{\C}{\mathscr{C}}
+\newcommand{\diag}{\mbox{\textbf{diag}}}
+\newcommand{\floor}[1]{\left\lfloor#1\right\rfloor}
+\newcommand{\modulo}[2]{\overline{#1}^{#2}}
+\newcommand{\SE}[1]{\tilde{#1}}
+\newcommand{\Dist}{\mathbf{\mathcal{D}}}
+\newcommand{\Regr}{(-)}
+\newcommand{\Progr}{(+)}
+\newcommand{\thclean}{\epsilon_{CLEAN}}
+\newcommand{\resp}{\textit{resp. }}
+\newcommand{\one}{\mathds{1}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Rp}{\mathbb{R}^+}
+\newcommand{\erf}{\mbox{erf}}
+\newcommand{\Ref}{\mbox{\tiny ref}}
+\newcommand{\Cur}{\mbox{\tiny cur}}
+\newcommand{\mx}[1]{\mathbf{\bm{#1}}} % Matrix command
+\newcommand{\vc}[1]{\mathbf{\bm{#1}}} % Vector command
+\def\eqdef {\buildrel \rm \vartriangle \over =}    % Egal par definition.
+\def\eqas  {\buildrel \rm a.s. \over =}   % Egal a.s.
+\def\toas  {\buildrel \rm a.s. \over \to} % ---> a.s.
+
+\newcommand{\HalfLine}{\rule[1ex]{0.5\textwidth}{0.1mm}}
+
+\newcommand{\TriRelief}{\ding{226}}% : Fleche en relief
+
+
+\newcommand{\revAdd}[1]{#1}        %Disable
+%\newcommand{\revAdd}[1]{\emph{#1}}%Enable
+\newcommand{\IDX}[1]{\textit{#1}}
+\newcommand{\refEq}[1]{(\ref{#1})}
+
+\definecolor{lightgreen}{rgb}{0.8,1.0,0.8}
+\definecolor{lightred}{rgb}{1.0,0.8,0.8}
+
+\newcommand*\Up{\textcolor{green}{%
+  \ensuremath{\blacktriangle}}}
+\newcommand*\Down{\textcolor{red}{%
+  \ensuremath{\blacktriangledown}}}
+\newcommand*\Const{\textcolor{darkgray}%
+  {\textbf{--}}}
+
+%% Hyphnenation
+%\hyphenation{échantillon-nage}
+
+
+
+\newenvironment{itemizeSpec}{%
+\begin{itemize}%[topsep=5pt,partopsep=5pt]
+\setlength{\itemsep}{2pt}
+}
+{%
+\end{itemize}
+\vspace{5pt}
+}
+% \begin{itemize}
+%   \setlength{\itemsep}{5pt}
+%   \setlength{\parskip}{10pt}
+%   \setlength{\parsep}{10pt}
+% }
+% {%
+% \end{itemize}}
+
+% GanttHeader setups some parameters for the rest of the diagram
+% #1 Width of the diagram
+% #2 Width of the space reserved for task numbers
+% #3 Width of the space reserved for task names
+% #4 Number of months in the diagram
+% In addition to these parameters, the layout of the diagram is influenced
+% by keys defined below, such as y, which changes the vertical scale
+\def\GanttHeader#1#2#3#4{%
+\shorthandoff{:;!?}
+ \pgfmathparse{(#1-#2-#3)/#4}
+ \tikzset{y=7mm, task number/.style={left, font=\bfseries},
+     task description/.style={text width=#3,  right, draw=none,
+           font=\sffamily, xshift=#2,
+           minimum height=2em},
+     gantt bar/.style={draw=black, rounded corners, fill=blue!30},
+     help lines/.style={draw=black!30, dashed},
+     x=\pgfmathresult pt
+     }
+  \def\totalmonths{#4}
+  \def\yscale{0.82}
+  \node (Header) [task description] at (0,0) {\textbf{\large Tâches}};
+  \begin{scope}[shift=($(Header.south east)$)]
+    \fill[color=red!10, rounded corners] (0,0) rectangle +(\totalmonths+0.2, 0.6);
+    \foreach \x in {1,...,#4}
+      \node[above] at (\x,0) {\footnotesize\x};
+ \end{scope}
+}
+
+% This macro adds a task to the diagram
+% #1 Number of the task
+% #2 Task's name
+% #3 Starting date of the task (month's number, can be non-integer)
+% #4 Task's duration in months (can be non-integer)
+\def\Task#1#2#3#4{%
+\node[task number] at ($(Header.west) + (0, -#1*\yscale)$) {#1};
+\node[task description] at (0,-#1*\yscale) {#2};
+\begin{scope}[shift=($(Header.south east)$)]
+  %\draw (0,-#1*\yscale) rectangle +(\totalmonths, 1);
+  \fill[color=red!10, rounded corners] (0,-#1*\yscale) rectangle +(\totalmonths+0.2, 1);
+  \foreach \x in {1,...,\totalmonths}
+    \draw[help lines] (\x,-#1*\yscale) -- +(0,1);
+  %\filldraw[gantt bar] ($(#3, -#1+0.2)$) rectangle +(#4,0.6);
+  \shadedraw[gantt bar] ($(#3, -#1*\yscale+0.2)$) rectangle +(#4,0.6);
+\end{scope}
+}
+
+% This macro adds a task to the diagram
+% #1 Number of the task
+% #2 Task's name
+% #3 Starting date of the task first part
+% #4 Task's duration in months first part
+% #5 Starting date of the task second part
+% #6 Task's duration in months second part
+\def\DualTask#1#2#3#4#5#6{%
+\node[task number] at ($(Header.west) + (0, -#1*\yscale)$) {#1};
+\node[task description] at (0,-#1*\yscale) {#2};
+\begin{scope}[shift=($(Header.south east)$)]
+  %\draw (0,-#1*\yscale) rectangle +(\totalmonths, 1);
+  \fill[color=red!10, rounded corners] (0,-#1*\yscale) rectangle +(\totalmonths+0.2, 1);
+  \foreach \x in {1,...,\totalmonths}
+    \draw[help lines] (\x,-#1*\yscale) -- +(0,1);
+  %\filldraw[gantt bar] ($(#3, -#1+0.2)$) rectangle +(#4,0.6);
+  \shadedraw[gantt bar] ($(#3, -#1*\yscale+0.2)$) rectangle +(#4,0.6);
+  \shadedraw[gantt bar] ($(#5, -#1*\yscale+0.2)$) rectangle +(#6,0.6);
+\end{scope}
+}
+
+

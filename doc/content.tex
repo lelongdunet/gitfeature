@@ -16,9 +16,9 @@ The described workwflow lies on some key concepts that needs to be defined :
 \begin{itemize}
  \item \textbf{Development reference branch} or the main development branch, is the branc containing all validated commits and never must be rebased. It is subsequently referred as \texttt{\DEVREF}. New feature branches are supposed to be based on this branch which is a stable point.
  \item \textbf{Draft feature branches} are branches in which are commited changes related to each feature. They are created in git as \texttt{draft/featurename} 
- \item \textbf{Final feature branches} are branches created at the finalization step, once features are supposed to be working and ready for integration in \DEVREF. They are created in git as \texttt{final/featurename} 
+ \item \textbf{Final feature branches} are branches created at the finalization step, once features are supposed to be working and ready for integration in \DEVREF. They are created in git as \texttt{final/featurename}
  \item \textbf{Dependant feature} is a feature that needs commits of another feature wich is not yet in \DEVREF.
- \item \textbf{Start branch} are branches used in dependant features as a marker in wich you are not supposed to commit. They mark the first commit of a feature when it is not just after \DEVREF. They are created in git as \texttt{start/featurename} 
+ \item \textbf{Start branch} are branches used in dependant features as a marker in wich you are not supposed to commit. They mark the first commit of a feature when it is not just after \DEVREF. They are created in git as \texttt{start/featurename}
  \item \textbf{Updated feature} : A feature is updated when it is succesfully rebased on \DEVREF~so that it contains all its commits. In the case of dependant features, it must be rebased on the draft or final branch of the previous feature.
 \end{itemize}
 
@@ -34,7 +34,7 @@ Once the script is installed on your system, you get a new git command :
 \begin{lstlisting}
 git feature
 \end{lstlisting}
-This single command should shw the help. To properly work, git-feature must first be initialized using
+This single command should show the help. To properly work, git-feature must first be initialized using
 \begin{lstlisting}
 git feature -a init
 \end{lstlisting}
@@ -43,22 +43,27 @@ This inialization is at the repository level so it must be run for each individu
 You should also see some alias appear if you use shell completion
 \begin{lstlisting}
 git feat<tab><tab>
-  featclose       featintegrate   featpush        featreview      feature
-  featfinalize    featmove        featpushall     featupdate      featview        
-  featviewall     
+feat            featfinalize    featmove        feattest        featview
+featclear       featintegrate   featpush        featupdate
+featco          featlist        featreview      feature
 \end{lstlisting}
 Here is a brief description of most important of these commands :
 \begin{itemize}
     \item \texttt{feature} : is the script itself and can be used to create new feature
+    \item \texttt{feat} : is a shortcut for \texttt{git feature -a} and can be followed by a set of advanced commands
     \item \texttt{featupdate} : can be used after a fetch to update a feature ( a rebase is performed on \DEVREF~or the previous feature if it dependant )
-    \item \texttt{featpush} : is used to push a feature on the remote. Recall that all branches (draft, final and start) must be pushed so this command avoid doing this by hand.
-    \item \texttt{featpushall} : perform featpushall for all local features.
-    \item \texttt{featfinalize} : create the final branch of a feature
-    \item \texttt{featview} : show in gitk branches related to features you are working on.
-    \item \texttt{featviewall} : same as previous but also show feature other people are working on.
+    \item \texttt{featpush} : is used to push a feature on the remote. Recall that all branches (draft, final and start) must be pushed so this command avoid doing this by hand. If \texttt{all} is specified instead of a feature all feaures already pushed and modified since last push are updated.
+    \item \texttt{featfinalize} : create the final branch of a feature.
+    \item \texttt{featintegrate} : integrate the specified feature in the current branch of the repository. The current branch must be the \DEVREF or a temporary branch that will be merged into it. An error is raised if current branch is a feature branch.
+    \item \texttt{featlist} : List all active features with their state. By default only local features are displayed but one remote name can be specified. If \texttt{all} is specified, all active features are listed.
+    \item \texttt{featco} : Do the same as \texttt{git checkout} except a feature name instead of the full branch name can be directly specified. If a feature is
+    specified, the current working branch of this feature is checkout.
+    \item \texttt{featview} : show in gitk branches related to features related to the specified remote. By default features you are working on are selected.
+ If \texttt{all} is specified instead of a remote name, all active features are shown.
     \item \texttt{featreview} : launch an interactive rebase on the right set of commits for a given feature
-    \item \texttt{featmove} : this command should only be used sometimes for dependant features. It safely move a feature branch using rebase.
+    \item \texttt{featmove} : this command should only be used sometimes for dependant features. It safely moves a feature branch using rebase.
     \item \texttt{featclose} : is used to delete all feature branch. This can be run only when the feature is included in \DEVREF.
+    \item \texttt{feattest} : allows to easily merge a set of selected of feature branches into a test branch.
 \end{itemize}
 Most of these commands apply on a specific feature. Eather this feature can be specified as the last commandline argument or the current git HEAD is used.
 
@@ -92,19 +97,6 @@ git featpush
 \end{lstlisting}
 
 Some time, severall people may need to share a feature to work on. If you can avoid it, this is better. But if you have to, it is possible, but in that case you must never EDIT or SQUASH commits that are pushed until finalization step. If you need to squash commits together you can just move them and begin the comment with '\texttt{TOSQUASH : }'.
-
-\section{Testing your draft features together}
-
-When your are working on severall feature in parallel you may want to test them together. In that you can merge them in a temporary branch. Suppose we want to test \texttt{feat1, feat2} and \texttt{feat3} together. Then run
-\begin{lstlisting}
-git checkout draft/feat1
-git checkout -b tmp/feat123
-git merge draft/feat2
-git merge draft/feat3
-\end{lstlisting}
-You can sometime experience a conflict while merging. In that case it is interesting to understand it because you will likely experience the same conflict when you will include these features one after the other inn \DEVREF.
-
-Here the \texttt{tmp/feat123} is for you and should not be pushed unless you need discuss about it with others.
 
 \section{Development cycle for dependant features}
 

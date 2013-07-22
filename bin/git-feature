@@ -264,6 +264,8 @@ unicref()
 display_ver()
 {
     echo "Git feature $VER"
+    SHAVER_FILE="$APPPATH/shaver"
+    [ -f "$SHAVER_FILE" ] && echo "Shot : $(<"$SHAVER_FILE")"
     echo ""
 }
 

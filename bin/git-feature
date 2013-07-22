@@ -5,10 +5,10 @@
 # View README file for more details.
 
 
-PYPATH="$(dirname "$(readlink -f "$0")")"/../python
+APPPATH="$(dirname "$(readlink -f "$0")")"/..
+PYPATH="$APPPATH"/python
 CMDFEATCACHE="python $PYPATH/featmain.py"
 TMPFILE=/tmp/featuretmp.$USER
-HOOKRELPATH=../hooks
 VER="v0.2.04"
 
 
@@ -180,7 +180,7 @@ initialize()
     fi
 
     #Install hook
-    HOOKPATH="$(dirname "$(readlink -f "$0")")/$HOOKRELPATH"
+    HOOKPATH="$APPPATH/hooks"
     echo "Getting hooks from $HOOKPATH"
     if ! cp -a "$HOOKPATH/"* "$GITDIR/hooks/"; then
         exit

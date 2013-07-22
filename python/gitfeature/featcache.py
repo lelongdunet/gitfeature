@@ -487,6 +487,12 @@ class Feature(object):
             self.mainbranch = self.branches.pop()
             self.branches.add(self.mainbranch)
 
+        if self.mainbranch.depend is not None and not self.mainbranch.depend:
+            #Try to get the dependancy of any other branch
+            for branch in self.branches:
+                if branch.depend is None or branch.depend:
+                    self.mainbranch.depend = branch.depend
+
         verbose('Main branch : %s' % self.mainbranch)
 
         #Check push consistency

@@ -8,6 +8,9 @@ try:
 except KeyError:
     Config.DEVREF = 'devel'
 
+if Config.DEVREF[:8] == 'remotes/':
+    Config.DEVREF = Config.DEVREF[8:]
+
 try:
     Config.MYREPO = environ['REMOTE']
 except KeyError:

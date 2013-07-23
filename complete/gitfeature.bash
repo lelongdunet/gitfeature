@@ -63,6 +63,20 @@ __git_featnamebranches ()
 	fi
 }
 
+_git_feat ()
+{
+    local subcommands="
+    close clear cherry checkout devref files
+    diff finalize init merge update show view version
+    "
+	local subcommand="$(__git_find_on_cmdline "$subcommands")"
+	if [ -z "$subcommand" ]; then
+        __gitcomp "$subcommands"
+    else
+        __gitcomp_nl "$(__git_allfeat)"
+    fi
+}
+
 _git_featmove ()
 {
     __gitcomp_nl "$(__git_refs)"
@@ -118,4 +132,13 @@ _git_feature ()
 	__gitcomp_nl "$(__git_featnamebranches)"
 }
 
+_git_branchmove ()
+{
+    __gitcomp_nl "$(__git_heads)"
+}
+
+_git_branchdel ()
+{
+    __gitcomp_nl "$(__git_heads)"
+}
 

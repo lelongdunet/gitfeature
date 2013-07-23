@@ -1033,6 +1033,8 @@ class RepoCache(object):
             return feat.mainbranch
 
     def get_dereference(self, branchname):
+        if '/' in branchname:
+            return branchname
         try:
             feat = self.get_feature(branchname)
             return feat.mainbranch

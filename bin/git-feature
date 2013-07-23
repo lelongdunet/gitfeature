@@ -287,7 +287,9 @@ OPTIONS:
             > checkout : checkout the main branch of the given feature
             > devref : Change the devref ( it must always contain the old one )
             > files : list files modified in all commits of the feature
+                - accept full option -F to compute diff from start point instead of root
             > diff : show all patch (overall diff) of the feature (all commits together)
+                - accept full option -F to compute diff from start point instead of root
             > finalize : Finalize the feature
             > init : Initialize current repository to handle features
             > merge : Merge all features in a single branch
@@ -782,12 +784,20 @@ elif [ "$DO" == 'U' ]; then
     exit
 
 elif [ "$DO" == 'diff' ]; then
-    STARTPOINT=$(feature_root $FEATUREBRANCH) || exit 1
+    if [ "$FULL" == 'y' ]; then
+        STARTPOINT=$(start_point $FEATUREBRANCH) || exit 1
+    else
+        STARTPOINT=$(feature_root $FEATUREBRANCH) || exit 1
+    fi
     git diff "$STARTPOINT" "$($CMDFEATCACHE dereference "$FEATUREBRANCH")"
     exit
 
 elif [ "$DO" == 'files' ]; then
-    STARTPOINT=$(feature_root $FEATUREBRANCH) || exit 1
+    if [ "$FULL" == 'y' ]; then
+        STARTPOINT=$(start_point $FEATUREBRANCH) || exit 1
+    else
+        STARTPOINT=$(feature_root $FEATUREBRANCH) || exit 1
+    fi
     git diff --name-only "$STARTPOINT" "$($CMDFEATCACHE dereference "$FEATUREBRANCH")"
     exit
 

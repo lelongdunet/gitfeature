@@ -9,7 +9,7 @@ APPPATH="$(dirname "$(readlink -f "$0")")"/..
 PYPATH="$APPPATH"/python
 CMDFEATCACHE="python $PYPATH/featmain.py"
 TMPFILE=/tmp/featuretmp.$USER
-VER="v0.2.04"
+VER="v0.2.10"
 
 
 if ! GITDIR="$(git rev-parse --git-dir)"; then
@@ -18,6 +18,7 @@ fi
 
 cd "$GITDIR/.."
 GITDIR=.git
+FEATDIR="$GITDIR/features"
 
 if [ "$1" == "_featcache" ]; then
     shift
@@ -176,6 +177,14 @@ initialize()
         git config workflow.remote "$REMOTE"
         if is_local $DEVREF; then
             git update-ref refs/markers/devref $DEVREF
+        fi
+    else
+        if [ ! -d "$FEATDIR" ]; then
+            mkdir "$FEATDIR"
+            mv "$GITDIR"/featcache* "$GITDIR"/featstore "$GITDIR"/test_merge* "$FEATDIR"
+            echoerr "-------------------------------------------------"
+            echoerr "!! - Cannot go back to previous versions now - !!"
+            echoerr "-------------------------------------------------"
         fi
     fi
 
@@ -1236,8 +1245,8 @@ elif [ "$DO" == 'T' ]; then
         WORKFILE="test_merge"
     fi
 
-    if [ -f "$GITDIR/$WORKFILE" ]; then
-        source "$GITDIR/$WORKFILE"
+    if [ -f "$FEATDIR/$WORKFILE" ]; then
+        source "$FEATDIR/$WORKFILE"
     fi
 
     LIST="$($CMDFEATCACHE featmainbranch state=draft,final sort=time)"
@@ -1309,8 +1318,8 @@ elif [ "$DO" == 'T' ]; then
     git commit --allow-empty -F "$TMPFILE"
     git branch -f testing_track
 
-    echo "MERGEDFEAT='$MERGEDFEAT'" > "$GITDIR/$WORKFILE"
-    echo "NOTMERGEDFEAT='$NOTMERGEDFEAT'" >> "$GITDIR/$WORKFILE"
+    echo "MERGEDFEAT='$MERGEDFEAT'" > "$FEATDIR/$WORKFILE"
+    echo "NOTMERGEDFEAT='$NOTMERGEDFEAT'" >> "$FEATDIR/$WORKFILE"
     repeatchar 60 '='
 
     exit

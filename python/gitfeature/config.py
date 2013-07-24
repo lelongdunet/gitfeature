@@ -19,4 +19,4 @@ except KeyError:
 #Suppose current directory is the repo root
 Config.GITDIR = '.git'
 Config.GITROOT = '.'
-
+Config.FEATDIR = '%s/features' % Config.GITDIR

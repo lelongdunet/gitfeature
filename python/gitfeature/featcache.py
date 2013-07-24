@@ -9,10 +9,10 @@ import error
 
 _CACHEVER = 11
 
-initlog(join_file(Config.GITDIR, 'featcache.log'))
+initlog(join_file(Config.FEATDIR, 'featcache.log'))
 
 def load_cache():
-    pickle_file = join_file(Config.GITDIR, 'featcache')
+    pickle_file = join_file(Config.FEATDIR, 'featcache')
     if exists(pickle_file):
         try:
             repo_cache = cPickle.load(open(pickle_file))
@@ -791,7 +791,7 @@ class RepoCache(object):
 
     def _load_commitstore(self):
         if not hasattr(self, 'commitstore') or self.commitstore is None:
-            pickle_file = join_file(Config.GITDIR, 'featstore')
+            pickle_file = join_file(Config.FEATDIR, 'featstore')
             if len(self.devrefs) > 0 and exists(pickle_file):
                 self.commitstore = cPickle.load(open(pickle_file))
             else:
@@ -803,13 +803,13 @@ class RepoCache(object):
             f = open('out', 'w')
             f.write(str(self.commitstore))
             f.close()
-            pickle_file = join_file(Config.GITDIR, 'featstore')
+            pickle_file = join_file(Config.FEATDIR, 'featstore')
             cPickle.dump(self.commitstore, open(pickle_file, 'wb', -1))
             del self.commitstore
         else:
             verbose('No save commitstore')
 
-        pickle_file = join_file(Config.GITDIR, 'featcache')
+        pickle_file = join_file(Config.FEATDIR, 'featcache')
         cPickle.dump(self, open(pickle_file, 'wb'), -1)
 
     def check_integrated(self, featname):

@@ -486,6 +486,8 @@ class Feature(object):
             self.error = error.FeatureBadMain()
             self.mainbranch = self.branches.pop()
             self.branches.add(self.mainbranch)
+        elif isinstance(self.error, error.FeatureBadMain):
+            self.error = None
 
         if self.mainbranch.depend is not None and not self.mainbranch.depend:
             #Try to get the dependancy of any other branch

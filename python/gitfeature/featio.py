@@ -117,7 +117,10 @@ def process(argv, repo_cache):
             }
     if argv[0] == 'sync':
         if len(argv) > 1:
-            repo_cache.sync(argv[1])
+            if argv[1] == '--all':
+                repo_cache.sync('', True)
+            else:
+                repo_cache.sync(argv[1])
         else:
             repo_cache.sync()
             events = repo_cache.read_events()

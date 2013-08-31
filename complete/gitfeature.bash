@@ -67,7 +67,7 @@ _git_feat ()
 {
     local subcommands="
     close clear cherry checkout devref files
-    diff finalize init merge update show view version
+    diff finalize init merge update show syncall view version
     "
 	local subcommand="$(__git_find_on_cmdline "$subcommands")"
 	if [ -z "$subcommand" ]; then

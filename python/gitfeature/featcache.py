@@ -469,6 +469,8 @@ class Feature(object):
         if self.repo_cache.check_integrated(self.name):
             self.integrated = True
             self.pushuptodate = True
+        #else:
+        #    self.integrated = False
 
         #Local branch has priority only if it the highest state
         if (localbranch is not None
@@ -835,7 +837,7 @@ class RepoCache(object):
             return 0
         return self.commitstore.commits.has_key(sha)
 
-    def sync(self, addevent = ''):
+    def sync(self, addevent = '', all_check = False):
         """ Sync cache with real state of the repository """
         from dulwich.repo import Repo
 
@@ -873,8 +875,6 @@ class RepoCache(object):
             for name, sha in devref_tocheck.iteritems():
                 self.devrefs[name] = a2b_hex(sha)
             all_check = True
-        else:
-            all_check = False
 
         count = 0
         changed = []

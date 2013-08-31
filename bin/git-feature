@@ -304,6 +304,7 @@ OPTIONS:
             > merge : Merge all features in a single branch
             > update : Update the specified feature using rebase
             > show : Show informations about specified feature
+            > syncall : Resynchronize the state of all branches
             > view : View local features and there remote updates
                 - accept full option -F to see all commits of DEVREF
             > version : Display git feature version
@@ -441,6 +442,11 @@ while getopts "AFrfm:tb:a:hucvpliRSUsTLD" OPTION; do
                     ;;
                 show)
                     DO='show'
+                    ;;
+                syncall)
+                    DO='syncall'
+                    $CMDFEATCACHE sync --all
+                    exit
                     ;;
                 view)
                     DO='v'

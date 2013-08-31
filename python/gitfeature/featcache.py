@@ -555,7 +555,11 @@ class Feature(object):
             if k < level_to_keep and k > 0])
 
         if self.mainbranch.isstart():
-            rmbranches.append(myremotebranches[0])
+            if not myremotebranches.has_key(0):
+                #TODO > warning : Strange situation
+                pass
+            else:
+                rmbranches.append(myremotebranches[0])
         return rmbranches
 
     def pushlist(self, force = False):

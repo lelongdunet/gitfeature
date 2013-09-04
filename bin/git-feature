@@ -632,6 +632,25 @@ fi
 ################################################################################
 #   Function definitions
 ################################################################################
+function check_recent_fetch()
+{
+    if FETCHINTER=$(git config workflow.fetchinter); then
+        FETCHINTER_S=$(($FETCHINTER*3600))
+        FETCHAGE=$(($(date +%s) - $(date -r "$GITDIR/FETCH_HEAD" +%s)))
+        if [[ $FETCHAGE -gt $FETCHINTER_S ]]; then
+            echo "########### -- ERROR -- ###################"
+            echo "You made no fetch for more than $FETCHINTER hours"
+            echo "You should at least update the main branch $DEVREF"
+            echo ""
+            echo "If you are really unable to fetch now you can avoid this error by running"
+            echo " touch $GITDIR/FETCH_HEAD"
+            echo "-------------------------------------------------------------------------"
+            return 1
+        fi
+    fi
+
+    return 0
+}
 
 function list_feattags()
 {
@@ -1232,6 +1251,10 @@ elif [ "$DO" == 'T' ]; then
         echoerr "The repository needs to be clean for this operation."
         echo "Please clean uncommited changes and try again."
         exit 6
+    fi
+
+    if ! check_recent_fetch; then
+        exit 7
     fi
 
     git branch -f testing_track testing &> /dev/null

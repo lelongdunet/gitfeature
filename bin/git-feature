@@ -194,6 +194,9 @@ initialize()
     if ! cp -a "$HOOKPATH/"* "$GITDIR/hooks/"; then
         exit
     fi
+    mkdir "$GITDIR/features"
+    mkdir "$GITDIR/feat_rebase"
+    touch "$GITDIR/features/featcache.log"
 
     git config workflow.feature $VER
 

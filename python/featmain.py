@@ -2,8 +2,14 @@ from sys import argv
 from gitfeature.featio import process
 from gitfeature.featcache import load_cache
 from gitfeature.error import BranchError
+from gitfeature.util import print_err
 
 repo_cache = load_cache()
+
+if repo_cache is None:
+    print_err('Git feature is not installed in this repo')
+    exit()
+
 if len(argv) < 2:
     repo_cache.sync()
 elif argv[1] == 'parse':

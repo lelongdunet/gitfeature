@@ -10,11 +10,15 @@ def initlog(log_filename):
     logger.setLevel(logging.DEBUG)
     # create file handler which logs even debug messages
     #fh = logging.FileHandler(log_filename)
-    fh = logging.handlers.RotatingFileHandler(
-            log_filename,
-            maxBytes=int(1e4),
-            backupCount=2)
-    fh.setLevel(logging.DEBUG)
+    try:
+        fh = logging.handlers.RotatingFileHandler(
+                log_filename,
+                maxBytes=int(1e4),
+                backupCount=2)
+        fh.setLevel(logging.DEBUG)
+    except IOError:
+        return False
+
     # create formatter and add it to the handlers
     formatter = logging.Formatter(
             '%(asctime)s -'\
@@ -23,6 +27,8 @@ def initlog(log_filename):
     fh.setFormatter(formatter)
     # add the handlers to logger
     logger.addHandler(fh)
+
+    return True
 
 #Functions to display informations in log
 verbose = logging.info

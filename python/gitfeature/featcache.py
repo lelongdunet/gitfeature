@@ -20,6 +20,9 @@ def load_cache():
             verbose("AttributeError while loading cache. Re initialize!")
             repo_cache = RepoCache()
     else:
+        if not exists(Config.FEATDIR):
+            return None
+
         repo_cache = RepoCache()
 
     return repo_cache

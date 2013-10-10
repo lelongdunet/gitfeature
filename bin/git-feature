@@ -169,6 +169,7 @@ initialize()
         if ! menuselect "$(git remote)" "Choose your public repo where you will push"; then
             echo ""
             echo "Initialization aborted"
+            echo "You must first add your remote repositories"
             exit
         fi
 

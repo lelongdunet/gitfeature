@@ -137,9 +137,11 @@ def show_feature(disp, repo_cache, featname):
     disp.disp('', True)
     disp.disp('State :          ')
     disp.highlight(repo_cache.get_shortstate(featname), True)
-    if feature.mainbranch.depend is not None:
+    if feature.mainbranch.depend:
         disp.disp('Depend :         ')
         disp.highlight(feature.mainbranch.depend.feature, True)
+    elif feature.mainbranch.depend is not None:
+        disp.error('Dependancy not found!')
 
     disp.disp('Last change :    ')
     branchdate = time.localtime(feature.mainbranch.time)

@@ -1023,7 +1023,7 @@ class RepoCache(object):
         feature = self.features[featname]
         while dependlook > 0 and feature is not None:
             feature = feature.depend()
-            if feature is not None:
+            if feature:
                 feature = feature.feature
             dependlook -= 1
 

@@ -284,10 +284,11 @@ class Branch(object):
                     start_set = set()
 
                 for branch in branches:
-                    if (branch.isstart()
-                            and branch.feature == self.feature
-                            and start is None):
-                        start = branch
+                    if (branch.isstart() and branch.feature == self.feature):
+                        #Prefer local starts over remotes
+                        if (start is None
+                                or (branch.local and not start.local)):
+                            start = branch
                     elif branch.isstart() and depend is None:
                         start_set.add(branch.feature)
                     elif(depend is None

@@ -275,6 +275,7 @@ class Branch(object):
         #Walk until start point
         start = None
         depend = None
+        commit_count = 0
         while not self.repo_cache.isindevref(sha):
             if self.repo_cache.commits.has_key(sha):
                 branches = self.repo_cache.commits[sha].heads
@@ -305,8 +306,11 @@ class Branch(object):
                     if depend is not None and depend.feature in start_set:
                         depend = None
 
-                if start is None:   depend = None
-                elif depend is None: depend = self.depend
+                if start is None:
+                    depend = None
+                    commit_count += 1
+                elif depend is None:
+                    depend = self.depend
 
             #Get next commit
             if len(commit.parents) > 1:
@@ -337,6 +341,7 @@ class Branch(object):
             self.start = sha
             self.depend = None
         self.root = sha
+        self.commit_count = commit_count
 
     def check_depend(self):
         """ Check if depend branch is a valid one according to its state

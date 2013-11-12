@@ -222,6 +222,7 @@ class Branch(object):
         elif self.featuser == Config.MYREPO:
             return ':%s' % self.localname()
         else:
+            print_err('%s != %s' % (self.featuser, Config.MYREPO))
             raise error.NoPushAllowedError
 
     def unsethead(self):
@@ -317,6 +318,13 @@ class Branch(object):
         if not self.repo_cache.isindevref(sha):
             self.error = error.FeatureStartError(self)
             raise self.error
+
+        #TODO Make local starts for local working branches
+        #TODO The feature create command should also fork existing remotes
+        #Make local start branch for local branches
+        #if self.local and not start.local:
+        #    local_start = Branch(self.repo_cache, start)
+
 
         if start is not None:
             self.start = start

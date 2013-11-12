@@ -322,6 +322,8 @@ class Branch(object):
             self.start = start
             if depend:
                 self._switch_depend(depend)
+            else:
+                print_err('No real depend > floating : %s' % self)
         else:
             self.start = sha
             self.depend = None

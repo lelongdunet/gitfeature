@@ -275,6 +275,7 @@ class Branch(object):
         #Walk until start point
         start = None
         depend = None
+        commit_count = 0
         while not self.repo_cache.isindevref(sha):
             if self.repo_cache.commits.has_key(sha):
                 branches = self.repo_cache.commits[sha].heads
@@ -313,6 +314,8 @@ class Branch(object):
                 self.error = error.FeatureMergeError(self)
                 raise self.error
 
+            if start is None: commit_count += 1
+
             sha = a2b_hex(commit.parents[0])
             commit = repo.commit(sha)
 
@@ -337,6 +340,7 @@ class Branch(object):
             self.start = sha
             self.depend = None
         self.root = sha
+        self.commit_count = commit_count
 
     def check_depend(self):
         """ Check if depend branch is a valid one according to its state

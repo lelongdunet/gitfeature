@@ -1050,7 +1050,11 @@ class RepoCache(object):
         return feature
 
     def get_branch(self, branchname):
-        feat = self.get_feature(branchname)
+        try:
+            feat = self.get_feature(branchname)
+        except error.NotFoundFeature:
+            return branchname
+
         try:
             return self.branches[branchname]
         except:

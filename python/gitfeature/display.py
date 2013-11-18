@@ -147,6 +147,10 @@ def show_feature(disp, repo_cache, featname):
     branchdate = time.localtime(feature.mainbranch.time)
     disp.highlight(time.strftime("%a, %d %b %Y %H:%M:%S", branchdate), True)
 
+    if hasattr(feature.mainbranch, 'commit_count'):
+        disp.disp('Commit count :   ')
+        disp.highlight(feature.mainbranch.commit_count, True)
+
     disp.disp('Root commit :    ')
     disp.disp(b2a_hex(feature.mainbranch.root), True)
 

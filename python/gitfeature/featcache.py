@@ -306,16 +306,15 @@ class Branch(object):
                     if depend is not None and depend.feature in start_set:
                         depend = None
 
-                if start is None:
-                    depend = None
-                    commit_count += 1
-                elif depend is None:
-                    depend = self.depend
+                if start is None:   depend = None
+                elif depend is None: depend = self.depend
 
             #Get next commit
             if len(commit.parents) > 1:
                 self.error = error.FeatureMergeError(self)
                 raise self.error
+
+            if start is None: commit_count += 1
 
             sha = a2b_hex(commit.parents[0])
             commit = repo.commit(sha)

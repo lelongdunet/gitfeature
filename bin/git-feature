@@ -225,6 +225,24 @@ initialize()
     git config --unset alias.featpushall
 }
 
+checkfetch()
+{
+    if FETCHINTER=$(git config workflow.fetchinter); then
+        FETCHINTER_S=$(($FETCHINTER*3600))
+        FETCHAGE=$(($(date +%s) - $(date -r "$GITDIR/FETCH_HEAD" +%s)))
+        if [[ $FETCHAGE -gt $FETCHINTER_S ]]; then
+            echo "########### -- ERROR -- ###################"
+            echo "You made no fetch for more than $FETCHINTER hours"
+            echo "You should at least update the main devel reference  branch"
+            echo ""
+            echo "If you are really unable to fetch now you can avoid this error by running"
+            echo " touch $GITDIR/FETCH_HEAD"
+            echo "-------------------------------------------------------------------------"
+            exit 1
+        fi
+    fi
+}
+
 cleanoldfeat()
 {
     LIST=$($CMDFEATCACHE featmainbranch state=draft,final local integrated sort=time old=2592000)
@@ -908,6 +926,7 @@ elif [ "$DO" == 'D' ]; then
 
 
 elif [ "$DO" == 'i' ]; then
+    checkfetch
     FEATREBASEDIR="$GITDIR/feat_rebase"
     if [ -f "$FEATREBASEDIR/integration" ]; then
         echoimportant "JUST CLEAN THE PREVIOUS INTEGRATION"
@@ -1009,6 +1028,7 @@ elif [ "$DO" == 'i' ]; then
 
 #Push feature
 elif [ "$DO" == 'p' ]; then
+    checkfetch
     if [ "$FEATURE" == 'all' ]; then
         LIST=$($CMDFEATCACHE pushlist updateall)
     else
@@ -1089,6 +1109,7 @@ elif [ "$DO" == 'l' ]; then
 
 #Finalize feature
 elif [ "$DO" == 'f' ]; then
+    checkfetch
     DRAFTBRANCH="$($CMDFEATCACHE draftbranch "$FEATUREBRANCH")"
     if [ -z "$DRAFTBRANCH" ]; then
         echoerr "No draft branch found for feature $FEATURE found!"
@@ -1133,6 +1154,7 @@ elif [ "$DO" == 'f' ]; then
 
     exit
 elif [ "$DO" == 'm' ]; then
+    checkfetch
     FEATUREBRANCH="$($CMDFEATCACHE workingbranch "$FEATUREBRANCH")"
     if [ -z "$FEATUREBRANCH" ]; then
         echo "No working branch found to move"
@@ -1175,6 +1197,7 @@ elif [ "$DO" == 'm' ]; then
     exit
 
 elif [ "$DO" == 'r' ]; then
+    checkfetch
     FEATUREBRANCH="$($CMDFEATCACHE workingbranch "$FEATUREBRANCH")"
     if [ -z "$FEATUREBRANCH" ]; then
         echo "No working branch found to move"
@@ -1206,6 +1229,7 @@ elif [ "$DO" == 'co' ]; then
     exit
 
 elif [ "$DO" == 'u' ]; then
+    checkfetch
     FEATUREBRANCH="$($CMDFEATCACHE workingbranch "$FEATUREBRANCH")"
     if [ -z "$FEATUREBRANCH" ]; then
         echo "No working branch found to move"

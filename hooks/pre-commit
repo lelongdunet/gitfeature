@@ -19,6 +19,7 @@ DEVREF=$(git config workflow.devref)
 FEATREBASEDIR=$GITDIR/feat_rebase
 
 #Perform some regular checks
+#TODO Use the function checkfetch() of git-feature main script
 if FETCHINTER=$(git config workflow.fetchinter); then
     FETCHINTER_S=$(($FETCHINTER*3600))
     FETCHAGE=$(($(date +%s) - $(date -r "$GITDIR/FETCH_HEAD" +%s)))

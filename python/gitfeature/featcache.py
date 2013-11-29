@@ -583,6 +583,11 @@ class Feature(object):
     def pushlist(self, force = False):
         """ Return iterable of branches to push (or remote to remove). """
         branches = list(self.pushclean(True))
+        if self.mainbranch.depend:
+            dependfeat = self.mainbranch.depend.feature
+            branches.extend(dependfeat.pushclean(True))
+            branches.extend(dependfeat.pushlist(force))
+
         if self.mainbranch.local and (force or self.mainbranch.isactive()):
             branches.append(self.mainbranch)
             if isinstance(self.mainbranch.start, Branch):

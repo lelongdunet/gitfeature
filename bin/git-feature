@@ -1058,11 +1058,15 @@ elif [ "$DO" == 'c' ]; then
 elif [ "$DO" == 'v' ]; then
     BRANCHLIST=""
     echo "Getting list of branch ..."
+    FEATARG=$($CMDFEATCACHE feature "$ARG" 2> /dev/null)
     if [[ "$ALL" == 'y' || "$ARG" == all ]]; then
         BRANCHLIST="$($CMDFEATCACHE featbranches state=draft,final)"
+    elif [ -n "$FEATARG" ]; then
+        BRANCHLIST="$($CMDFEATCACHE relatedbranches "$FEATARG")"
     elif [ -n "$ARG" ]; then
         REMOTENAME="$ARG"
         BRANCHLIST="$($CMDFEATCACHE featbranches state=draft,final featuser=$REMOTENAME)"
+        echo $?
     else
         BRANCHLIST="$($CMDFEATCACHE featbranches state=draft,final local)"
     fi

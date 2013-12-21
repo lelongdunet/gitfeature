@@ -324,6 +324,9 @@ OPTIONS:
             > finalize : Finalize the feature
             > init : Initialize current repository to handle features
             > merge : Merge all features in a single branch
+            > related : Show parent and dependant branches of a feature
+                - accept option -R to show remote branches
+                - accept option -E to display start point exclude
             > update : Update the specified feature using rebase
             > show : Show informations about specified feature
             > syncall : Resynchronize the state of all branches
@@ -430,7 +433,7 @@ fi
 
 DO='n' # Default action is new feature
 
-while getopts "AFrfm:tb:a:hucvpliRSUsTLD" OPTION; do
+while getopts "AFrfm:tb:a:hucvpliRSUEsTLD" OPTION; do
     case $OPTION in
         a)
             case $OPTARG in
@@ -481,6 +484,9 @@ while getopts "AFrfm:tb:a:hucvpliRSUsTLD" OPTION; do
                 update)
                     DO='u'
                     ;;
+                related)
+                    DO='related'
+                    ;;
                 close)
                     DO='C'
                     ;;
@@ -508,6 +514,9 @@ while getopts "AFrfm:tb:a:hucvpliRSUsTLD" OPTION; do
             ;;
         D)
             DATESORT='y'
+            ;;
+        E)
+            EXCLUDE='y'
             ;;
         c)
             DO='c'
@@ -1270,6 +1279,17 @@ elif [ "$DO" == 'u' ]; then
         export NEWSTARTPOINT=$FEATUREBASE
         echo git rebase --onto "$FEATUREBASE" "$STARTPOINT" "$FEATUREBRANCH"
         git rebase --onto "$FEATUREBASE" "$STARTPOINT" "$FEATUREBRANCH"
+    fi
+    exit
+
+elif [ "$DO" == 'related' ]; then
+    if [ "$REVERSE" == 'y' ]; then
+        $CMDFEATCACHE relatedbranches "$FEATURE"
+    else
+        $CMDFEATCACHE relatedlocalbranches "$FEATURE"
+    fi
+    if [ "$EXCLUDE" == 'y' ]; then
+        echo "^$($CMDFEATCACHE start "$FEATURE")"
     fi
     exit
 

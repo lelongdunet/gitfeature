@@ -189,6 +189,12 @@ class Branch(object):
             return self.start.commit.sha
         return self.start
 
+    def get_startbranch(self):
+        """ Return Branch instance of start point of None """
+        if isinstance(self.start, Branch):
+            return self.start
+        return None
+
     def fullname(self):
         """ Return the full name of the branch """
         state = _featstates[self._stateid]
@@ -246,6 +252,22 @@ class Branch(object):
             self.depend = new_depend
             if new_depend:
                 new_depend.children.add(self)
+
+    def recursechildren(self, localonly = True, get_starts = False):
+        branches = set()
+
+        for feat in self.feature.relatedfeatures():
+            branch = feat.mainbranch
+            if localonly and not branch.local:
+                continue
+            branches.add(branch)
+            startbranch = branch.get_startbranch()
+            if(get_starts and startbranch is not None):
+                branches.add(startbranch)
+
+            branches.update(branch.recursechildren(localonly, get_starts))
+
+        return branches
 
     def updatecommits(self, repo):
         """ Update branch info using repo (called from sync) """
@@ -1222,4 +1244,34 @@ class RepoCache(object):
         if self.get_feature(featname).uptodate():
             return 'y'
         raise error.NotUpToDate
+
+    def get_relatedlocalbranches(self, branchname):
+        """ Get all parent and dependant loacal branches (including starts) """
+        branch = self.get_branch(branchname)
+        branches = branch.recursechildren(True, True)
+
+        while branch and branch.local:
+            branches.add(branch)
+            startbranch = branch.get_startbranch()
+            if(startbranch is not None):
+                branches.add(startbranch)
+
+            branch = branch.depend
+
+        return '\n'.join(map(str, branches))
+
+    def get_relatedbranches(self, branchname):
+        """ Get all parent and dependant branches (including starts) """
+        branch = self.get_branch(branchname)
+        branches = branch.recursechildren(False, True)
+
+        while branch:
+            branches.add(branch)
+            startbranch = branch.get_startbranch()
+            if(startbranch is not None):
+                branches.add(startbranch)
+
+            branch = branch.depend
+
+        return '\n'.join(map(str, branches))
 

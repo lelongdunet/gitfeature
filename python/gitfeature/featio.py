@@ -66,7 +66,7 @@ def pushlist(repo_cache, updateall = False):
                     *[f.pushlist() for f in repo_cache.features.itervalues()
                         if f.needpush()])))
 
-def featstat(repo_cache, markpush = 'o+ ', markupdate = '* ', **args):
+def featstat(repo_cache, markpush = 'o+ ', markupdate = '* ~', **args):
     listout = []
     for feat in repo_cache.listfeat(**args):
         if (not feat.mainbranch.local) or feat.integrated or feat.pushuptodate:
@@ -78,8 +78,13 @@ def featstat(repo_cache, markpush = 'o+ ', markupdate = '* ', **args):
 
         if feat.depend() is not None and not feat.depend():
             uptodate = '?'
+        elif not feat.uptodate():
+            uptodate = markupdate[0]
+        elif not feat.fulluptodate():
+            uptodate = markupdate[2]
         else:
-            uptodate = markupdate[1] if feat.uptodate() else markupdate[0]
+            uptodate = markupdate[1]
+
         if feat.error is not None or feat.mainbranch.error is not None:
             uptodate = '!'
             pushed = '!'

@@ -392,6 +392,15 @@ class Branch(object):
         else:
             self.uptodate = (get_sha(self.depend) == get_sha(self.start))
 
+    def fulluptodate(self):
+        if not self.uptodate:
+            return False
+
+        depend = self.depend
+        if depend and isinstance(depend, Branch):
+            return depend.fulluptodate()
+        return True
+
     def delete(self):
         """ Set this branch to be deleted """
         self.feature.delbranch(self)
@@ -638,6 +647,12 @@ class Feature(object):
         """ Return True is up to date regarding its dependencies. """
         if not self.integrated:
             return self.mainbranch.uptodate
+        return True
+
+    def fulluptodate(self):
+        """ True if this feature and its dependancies are up to date. """
+        if not self.integrated:
+            return self.mainbranch.fulluptodate()
         return True
 
     def hasuser(self, featuser):

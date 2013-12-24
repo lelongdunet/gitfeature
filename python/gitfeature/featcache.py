@@ -392,8 +392,8 @@ class Branch(object):
         else:
             self.uptodate = (get_sha(self.depend) == get_sha(self.start))
 
-    def fulluptodate(self):
-        if not self.uptodate:
+    def fulluptodate(self, checkthisuptodate = True):
+        if checkthisuptodate and not self.uptodate:
             return False
 
         depend = self.depend

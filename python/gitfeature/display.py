@@ -154,7 +154,9 @@ def show_feature(disp, repo_cache, featname):
     disp.disp('Root commit :    ')
     disp.disp(b2a_hex(feature.mainbranch.root), True)
 
-    if not feature.uptodate():
+    if not feature.fulluptodate(False):
+        disp.error('Dependancies need update', True)
+    elif not feature.uptodate():
         disp.error('Update needed :  ', False)
         disp.disp(repo_cache.get_smartdepend(featname), True)
 

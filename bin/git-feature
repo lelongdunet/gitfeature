@@ -352,6 +352,7 @@ OPTIONS:
    -T      Make a test branch
                 > Allows to interactively select features to try to merge together.
    -u      Update the specified feature using rebase (Same as -a update )
+                - accept -F option to force update on non updated dependancies.
    -U      Update remote DEVREF and tags (integrator only)
    -v      View local features in gitk. Or if a remote name is specified, view
                 all features of this repository
@@ -505,6 +506,7 @@ while getopts "AFrfm:tb:a:hucvpliRSUEsTLD" OPTION; do
             ;;
         F)
             FULL='y'
+            FORCE='y'
             ;;
         R)
             REVERSE='y'
@@ -1252,8 +1254,13 @@ elif [ "$DO" == 'u' ]; then
     DEPENDNOTUPTODATE="$($CMDFEATCACHE dependnotuptodate "$FEATUREBRANCH")"
     if [ -n "$DEPENDNOTUPTODATE" ]; then
         echoerr "Depend feature : '$DEPENDNOTUPTODATE' is not up to date"
-        echo "First update dependant features"
-        exit 7
+        if [ -z "$FORCE" ]; then
+            echo "First update dependant features."
+            echo "You can force this update with -F option."
+            exit 7
+        else
+            echo "Force update on non up to date feature..."
+        fi
     fi
 
     #Check if repo is clean

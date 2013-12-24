@@ -1249,6 +1249,13 @@ elif [ "$DO" == 'u' ]; then
         exit 5
     fi
 
+    DEPENDNOTUPTODATE="$($CMDFEATCACHE dependnotuptodate "$FEATUREBRANCH")"
+    if [ -n "$DEPENDNOTUPTODATE" ]; then
+        echoerr "Depend feature : '$DEPENDNOTUPTODATE' is not up to date"
+        echo "First update dependant features"
+        exit 7
+    fi
+
     #Check if repo is clean
     if ! git diff --quiet HEAD; then
         echoerr "The repository needs to be clean for this operation."

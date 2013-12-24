@@ -328,6 +328,7 @@ class Branch(object):
                     if depend is not None and depend.feature in start_set:
                         depend = None
 
+                #TODO : Ensure depend is a local branch if one is available.
                 if start is None:   depend = None
                 elif depend is None: depend = self.depend
 
@@ -400,6 +401,14 @@ class Branch(object):
         if depend and isinstance(depend, Branch):
             return depend.fulluptodate()
         return True
+
+    def dependnotuptodate(self):
+        """ Get the first dependancy that is not up to date. """
+        if not self.depend:
+            return None
+        if not self.depend.uptodate:
+            return self.depend
+        return self.depend.dependnotuptodate()
 
     def delete(self):
         """ Set this branch to be deleted """
@@ -1259,6 +1268,15 @@ class RepoCache(object):
         if self.get_feature(featname).uptodate():
             return 'y'
         raise error.NotUpToDate
+
+    def get_dependnotuptodate(self, featname):
+        """ Get the name of the first dependant feature not up to date."""
+        feature = self.get_feature(featname)
+        baddepend = feature.mainbranch.dependnotuptodate()
+        if isinstance(baddepend, Branch):
+            return baddepend.feature
+
+        return ''
 
     def get_relatedlocalbranches(self, branchname):
         """ Get all parent and dependant loacal branches (including starts) """

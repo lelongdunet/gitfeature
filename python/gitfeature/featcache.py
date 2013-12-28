@@ -658,10 +658,10 @@ class Feature(object):
             return self.mainbranch.uptodate
         return True
 
-    def fulluptodate(self):
+    def fulluptodate(self, checkthisuptodate = True):
         """ True if this feature and its dependancies are up to date. """
         if not self.integrated:
-            return self.mainbranch.fulluptodate()
+            return self.mainbranch.fulluptodate(checkthisuptodate)
         return True
 
     def hasuser(self, featuser):

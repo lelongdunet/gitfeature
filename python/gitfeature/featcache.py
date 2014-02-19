@@ -227,6 +227,11 @@ class Branch(object):
             return str(self)
         elif self.featuser == Config.MYREPO:
             return ':%s' % self.localname()
+        elif self.isstart():
+            return '%s:refs/heads/%s' % (
+                    b2a_hex(self.commit.sha),
+                    self.localname()
+                    )
         else:
             print_err('%s != %s' % (self.featuser, Config.MYREPO))
             raise error.NoPushAllowedError
@@ -579,21 +584,37 @@ class Feature(object):
         if isinstance(self.error, error.FeaturePushError):
             self.error = None
 
+        #Local feature start point can either be a local or a remote branch
+        if isinstance(self.mainbranch.start, Branch):
+            startcommit = self.mainbranch.start.commit
+        else:
+            startcommit = None
+
         #Check start point
         if self.pushuptodate and (
                 localbranches.has_key(0)
                 and (
                     not myremotebranches.has_key(0)
                     or
-                    myremotebranches[0].commit != localbranches[0].commit)
+                    myremotebranches[0].commit != startcommit)
                 ):
-            rmbranches.append(localbranches[0])
+            if isinstance(self.mainbranch.start, Branch):
+                rmbranches.append(self.mainbranch.start)
+            else:
+                rmbranches.append(myremotebranches[0])
+
             self.error = error.FeaturePushError()
-            verbose('Start point push error on %s' % self)
+            verbose('Start point push error on %s (%s)' % (
+                self,
+                startcommit
+                )
+                )
 
         #If no local start point branch remove remote if exists
         if self.pushuptodate and (
                 not localbranches.has_key(0)
+                #Handle case when start point is a remote branch
+                and not isinstance(self.mainbranch.start, Branch)
                 and myremotebranches.has_key(0)):
             rmbranches.append(myremotebranches[0])
             self.error = error.FeaturePushError()

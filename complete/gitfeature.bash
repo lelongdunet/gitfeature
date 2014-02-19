@@ -63,6 +63,15 @@ __git_featnamebranches ()
 	fi
 }
 
+#This is the old implementation of __gitcomp_nl that use compgen.
+#Using compgen is necessary to handle quotes in completion
+__gitcompgen_nl ()
+{
+	local IFS=$'\n'
+	COMPREPLY=($(compgen -P "${2-}" -S "${4- }" -W "$1" -- "${3-$cur}"))
+}
+
+
 _git_feat ()
 {
     local subcommands="
@@ -73,72 +82,72 @@ _git_feat ()
 	if [ -z "$subcommand" ]; then
         __gitcomp "$subcommands"
     else
-        __gitcomp_nl "$(__git_allfeat)"
+        __gitcompgen_nl "$(__git_allfeat)"
     fi
 }
 
 _git_featmove ()
 {
-    __gitcomp_nl "$(__git_refs)"
+    __gitcompgen_nl "$(__git_refs)"
 }
 
 _git_featclose ()
 {
-    __gitcomp_nl "$(__git_localfeat)"
+    __gitcompgen_nl "$(__git_localfeat)"
 }
 
 _git_featco ()
 {
-    __gitcomp_nl "$(__git_allfeat)"
+    __gitcompgen_nl "$(__git_allfeat)"
 }
 
 _git_featpush ()
 {
-    __gitcomp_nl "$(__git_localfeat)"
+    __gitcompgen_nl "$(__git_localfeat)"
 }
 
 _git_featreview ()
 {
-    __gitcomp_nl "$(__git_localfeat)"
+    __gitcompgen_nl "$(__git_localfeat)"
 }
 
 _git_featupdate ()
 {
-    __gitcomp_nl "$(__git_localfeat)"
+    __gitcompgen_nl "$(__git_localfeat)"
 }
 
 _git_featintegrate ()
 {
-    __gitcomp_nl "$(__git_finalfeat)"
+    __gitcompgen_nl "$(__git_finalfeat)"
 }
 
 _git_featfinalize ()
 {
-    __gitcomp_nl "$(__git_draftfeat)"
+    __gitcompgen_nl "$(__git_draftfeat)"
 }
 
 _git_featview ()
 {
-    __gitcomp_nl "$(__git_remotes)"$'\n'"$(__git_allfeat)"
+    __gitcompgen_nl "$(__git_remotes)"$'\n'"$(__git_allfeat)"
 }
 
 _git_featlist ()
 {
-    __gitcomp_nl "$(__git_remotes)"
+    __gitcompgen_nl "$(__git_remotes)"
 }
 
 _git_feature ()
 {
-	__gitcomp_nl "$(__git_featnamebranches)"
+	__gitcompgen_nl "$(__git_featnamebranches)"
 }
 
 _git_branchmove ()
 {
-    __gitcomp_nl "$(__git_heads)"
+    __gitcompgen_nl "$(__git_heads)"
 }
 
 _git_branchdel ()
 {
-    __gitcomp_nl "$(__git_heads)"
+    __gitcompgen_nl "$(__git_heads)"
 }
 

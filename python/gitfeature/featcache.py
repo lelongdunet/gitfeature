@@ -1250,6 +1250,11 @@ class RepoCache(object):
         else:
             return ">D : draft feature"
 
+    def get__viewpush(self, featname):
+        """ For debug : view list of feature branches to push """
+        feature = self.get_feature(featname, True)
+        return '\n'.join(imap(str, feature.pushlist(True)))
+
     def get_push(self, featname):
         """ Return list of branches to push to update a remote feature """
         feature = self.get_feature(featname, True)

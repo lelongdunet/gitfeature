@@ -119,7 +119,7 @@ _git_featfinalize ()
 
 _git_featview ()
 {
-    __gitcomp_nl "$(__git_remotes) $(__git_allfeat)"
+    __gitcomp_nl "$(__git_remotes)"$'\n'"$(__git_allfeat)"
 }
 
 _git_featlist ()

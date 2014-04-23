@@ -1046,9 +1046,11 @@ elif [ "$DO" == 'p' ]; then
         echo "Pushing feature $FEATURE"
         LIST=$($CMDFEATCACHE pushauto "$FEATURE")
     fi
-    for branch in $LIST; do
-        git push -f $REMOTE $branch
-    done
+    if [ -z "$LIST" ]; then
+        echo "Everything is up to date"
+        exit
+    fi
+    git push -f $REMOTE $LIST
     $CMDFEATCACHE
     exit
 

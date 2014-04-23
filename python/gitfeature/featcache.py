@@ -600,7 +600,7 @@ class Feature(object):
                 ):
             if isinstance(self.mainbranch.start, Branch):
                 rmbranches.append(self.mainbranch.start)
-            else:
+            elif myremotebranches.has_key(0):
                 rmbranches.append(myremotebranches[0])
 
             self.error = error.FeaturePushError()

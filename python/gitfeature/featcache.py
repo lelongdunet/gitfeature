@@ -289,7 +289,8 @@ class Branch(object):
             sha = self.commit.sha
 
         try:
-            commit = repo.commit(sha)
+            commit = repo.commit(b2a_hex(sha))
+
         except KeyError as e:
             self.error = e
             return
@@ -344,8 +345,9 @@ class Branch(object):
 
             if start is None: commit_count += 1
 
-            sha = a2b_hex(commit.parents[0])
-            commit = repo.commit(sha)
+            sha_hex = commit.parents[0]
+            sha = a2b_hex(sha_hex)
+            commit = repo.commit(sha_hex)
 
         if not self.repo_cache.isindevref(sha):
             self.error = error.FeatureStartError(self)

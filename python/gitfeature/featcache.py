@@ -1,4 +1,5 @@
 import cPickle
+import sys
 from binascii import a2b_hex, b2a_hex
 from posixpath import join, basename, dirname
 from os.path import exists, join as join_file
@@ -909,6 +910,7 @@ class RepoCache(object):
         else:
             verbose('No save commitstore')
 
+        sys.setrecursionlimit(5000)
         pickle_file = join_file(Config.FEATDIR, 'featcache')
         cPickle.dump(self, open(pickle_file, 'wb'), -1)
 

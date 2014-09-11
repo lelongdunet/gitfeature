@@ -589,9 +589,9 @@ class Feature(object):
 
         #Local feature start point can either be a local or a remote branch
         if isinstance(self.mainbranch.start, Branch):
-            startcommit = self.mainbranch.start.commit
+            startcommit = self.mainbranch.start.commit.sha
         else:
-            startcommit = None
+            startcommit = self.mainbranch.start
 
         #Check start point
         if self.pushuptodate and (
@@ -599,7 +599,7 @@ class Feature(object):
                 and (
                     not myremotebranches.has_key(0)
                     or
-                    myremotebranches[0].commit != startcommit)
+                    myremotebranches[0].commit.sha != startcommit)
                 ):
             if isinstance(self.mainbranch.start, Branch):
                 rmbranches.append(self.mainbranch.start)

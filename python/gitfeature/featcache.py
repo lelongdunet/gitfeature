@@ -340,6 +340,10 @@ class Branch(object):
                 elif depend is None: depend = self.depend
 
             #Get next commit
+            if len(commit.parents) < 1:
+                self.error = error.FeatureDetachedError(self)
+                raise self.error
+
             if len(commit.parents) > 1:
                 self.error = error.FeatureMergeError(self)
                 raise self.error

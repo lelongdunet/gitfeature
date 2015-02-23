@@ -13,6 +13,9 @@ class BranchError(Error):
 class FeatureMergeError(BranchError):
     pass
 
+class FeatureDetachedError(BranchError):
+    pass
+
 class FeaturePushError(BranchError):
     pass
 

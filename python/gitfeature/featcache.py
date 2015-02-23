@@ -290,7 +290,7 @@ class Branch(object):
             sha = self.commit.sha
 
         try:
-            commit = repo.commit(b2a_hex(sha))
+            commit = repo.get_object(b2a_hex(sha))
 
         except KeyError as e:
             self.error = e
@@ -352,7 +352,7 @@ class Branch(object):
 
             sha_hex = commit.parents[0]
             sha = a2b_hex(sha_hex)
-            commit = repo.commit(sha_hex)
+            commit = repo.get_object(sha_hex)
 
         if not self.repo_cache.isindevref(sha):
             self.error = error.FeatureStartError(self)
@@ -756,7 +756,7 @@ class _CommitStore(object):
         sha_bin = a2b_hex(sha)
         max_index = 0
         while sha_bin is not None and not self.commits.has_key(sha_bin):
-            commit = self.repo.commit(sha)
+            commit = self.repo.get_object(sha)
             if self.newcommits.has_key(sha_bin):
                 if index > self.newcommits[sha_bin]:
                     self.newcommits[sha_bin] = index
@@ -880,7 +880,7 @@ class RepoCache(object):
             else:
                 refname = 'refs/heads/%s' % branch
             try:
-                repo.ref(refname)
+                repo.refs[refname]
             except KeyError:
                 branchlist.append(branch)
 
@@ -959,9 +959,9 @@ class RepoCache(object):
         basedevref = basename(devref)
 
         try:
-            sha_hex = repo.ref('refs/remotes/%s' % devref)
+            sha_hex = repo.refs['refs/remotes/%s' % devref]
         except KeyError:
-            sha_hex = repo.ref('refs/heads/%s' % devref)
+            sha_hex = repo.refs['refs/heads/%s' % devref]
 
         sha = a2b_hex(sha_hex)
         devref_tocheck = {}
@@ -986,7 +986,7 @@ class RepoCache(object):
             nameparts = ref.split('/')
             if len(nameparts) > 1 and nameparts[-2] in _featstates:
                 count += 1
-                sha = a2b_hex(repo.ref('refs/heads/%s' % ref))
+                sha = a2b_hex(repo.refs['refs/heads/%s' % ref])
                 try:
                     if sha != self.branches[ref].commit.sha or all_check:
                         changed.append((ref, sha, True))
@@ -998,7 +998,7 @@ class RepoCache(object):
             nameparts = ref.split('/')
             if len(nameparts) > 1 and nameparts[-2] in _featstates:
                 count += 1
-                sha = a2b_hex(repo.ref('refs/remotes/%s' % ref))
+                sha = a2b_hex(repo.refs['refs/remotes/%s' % ref])
                 try:
                     if sha != self.branches[ref].commit.sha or all_check:
                         changed.append((ref, sha, False))

@@ -418,6 +418,8 @@ class Branch(object):
         """ Get the first dependancy that is not up to date. """
         if not self.depend:
             return None
+        if self.depend.feature.integrated:
+            return None
         if not self.depend.uptodate:
             return self.depend
         return self.depend.dependnotuptodate()
